@@ -10,6 +10,51 @@ import type { EmailMessageData, EmailThreadData } from "../email-client/types";
 export type SyncJobType = "incremental" | "backfill" | "on_demand";
 
 /**
+ * Backfill phases for multi-phase full history import.
+ *
+ * - priority: Last 90 days (immediate value, fast)
+ * - extended: 90 days to 1 year (medium priority)
+ * - archive: 1+ years to full history (background)
+ * - complete: All phases finished
+ */
+export type BackfillPhase =
+  | "priority"
+  | "extended"
+  | "archive"
+  | "complete"
+  | "idle";
+
+/**
+ * Date ranges for each backfill phase
+ */
+export const BACKFILL_PHASE_RANGES = {
+  priority: { daysBack: 90, label: "Last 90 days" },
+  extended: { daysBack: 365, fromDaysBack: 90, label: "90 days to 1 year" },
+  archive: { fromDaysBack: 365, label: "1+ years (full history)" },
+} as const;
+
+/**
+ * Concurrency settings per phase (optimized for speed)
+ */
+export const BACKFILL_CONCURRENCY = {
+  priority: {
+    threadFetchConcurrency: 20, // High concurrency for wow effect
+    batchSize: 100,
+    queueConcurrency: 10,
+  },
+  extended: {
+    threadFetchConcurrency: 10,
+    batchSize: 100,
+    queueConcurrency: 5,
+  },
+  archive: {
+    threadFetchConcurrency: 5,
+    batchSize: 50,
+    queueConcurrency: 3,
+  },
+} as const;
+
+/**
  * Sync job status
  */
 export type SyncJobStatus =
@@ -118,19 +163,35 @@ export interface ProviderSyncOptions {
 }
 
 /**
- * Backfill configuration
+ * Backfill configuration for phase-based import
  */
 export interface BackfillConfig {
   /** Account ID to backfill */
   accountId: string;
   /** Organization ID */
   organizationId: string;
-  /** How far back to go (days) */
-  backfillDays: number;
+  /** Current backfill phase */
+  phase: BackfillPhase;
+  /** Date range: start (older boundary) */
+  afterDate?: Date;
+  /** Date range: end (newer boundary) */
+  beforeDate?: Date;
   /** Batch size for fetching */
   batchSize: number;
-  /** Priority (recent emails first) */
-  prioritizeRecent: boolean;
+  /** Concurrency for parallel thread fetching */
+  threadFetchConcurrency: number;
+}
+
+/**
+ * Phase-specific backfill result
+ */
+export interface PhaseBackfillResult extends SyncResult {
+  /** Phase that was processed */
+  phase: BackfillPhase;
+  /** Whether this phase is complete */
+  phaseComplete: boolean;
+  /** Estimated threads remaining in phase */
+  threadsRemaining?: number;
 }
 
 /**

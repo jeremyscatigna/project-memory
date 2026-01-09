@@ -3,17 +3,23 @@
 // =============================================================================
 //
 // Implements Gmail's sync strategy using the History API for incremental sync
-// and paginated thread listing for backfill.
+// and parallel thread fetching for high-speed backfill.
 //
 
 import type { GmailEmailClient } from "../email-client/gmail";
 import type { EmailThreadWithMessages } from "../email-client/types";
 import { log } from "../logger";
 import { batchDeduplicateThreads } from "./deduplication";
+import {
+  collectThreadIds,
+  estimateTimeRemaining,
+  fetchThreadsParallel,
+} from "./parallel-fetch";
 import { markThreadDeleted, processBatch } from "./processor";
 import type {
   BackfillConfig,
   BatchResult,
+  PhaseBackfillResult,
   ProviderSyncOptions,
   SyncError,
   SyncResult,
@@ -135,29 +141,35 @@ export async function syncGmailIncremental(
 }
 
 // =============================================================================
-// BACKFILL
+// PHASE-BASED BACKFILL
 // =============================================================================
 
 /**
- * Perform full backfill for a Gmail account.
- * Fetches all threads within the configured date range.
+ * Perform phase-based backfill for a Gmail account.
+ * Uses parallel fetching for high-speed import.
  *
  * @param client - Gmail client instance
- * @param config - Backfill configuration
- * @param onProgress - Progress callback
- * @returns Sync result with statistics
+ * @param config - Backfill configuration with phase and date range
+ * @param onProgress - Progress callback (processed, total, estimatedTimeRemaining)
+ * @returns Phase backfill result with statistics
  */
-export async function backfillGmail(
+export async function backfillGmailPhase(
   client: GmailEmailClient,
   config: BackfillConfig,
-  onProgress?: (progress: number, total: number) => void
-): Promise<SyncResult> {
+  onProgress?: (
+    processed: number,
+    total: number,
+    estimatedSeconds?: number
+  ) => void
+): Promise<PhaseBackfillResult> {
   const startTime = Date.now();
-  const result: SyncResult = {
+  const result: PhaseBackfillResult = {
     success: false,
     jobId: crypto.randomUUID(),
     accountId: config.accountId,
     type: "backfill",
+    phase: config.phase,
+    phaseComplete: false,
     threadsProcessed: 0,
     messagesProcessed: 0,
     newThreads: 0,
@@ -169,77 +181,90 @@ export async function backfillGmail(
   };
 
   try {
-    const afterDate = new Date();
-    afterDate.setDate(afterDate.getDate() - config.backfillDays);
-
-    let cursor: string | undefined;
-    let totalFetched = 0;
-    const allThreadIds: string[] = [];
-
-    // Phase 1: Collect all thread IDs
-    log.info("Gmail backfill: collecting thread IDs", {
+    // Step 1: Collect thread IDs for the date range
+    log.info("Gmail phase backfill: collecting thread IDs", {
       accountId: config.accountId,
-      afterDate,
+      phase: config.phase,
+      afterDate: config.afterDate?.toISOString(),
+      beforeDate: config.beforeDate?.toISOString(),
     });
 
-    do {
-      const response = await client.listThreads({
-        limit: 100,
-        cursor,
-        after: afterDate,
-        includeSpamTrash: false,
-      });
+    const allThreadIds = await collectThreadIds(
+      client,
+      config.afterDate,
+      config.beforeDate,
+      (collected) => {
+        log.debug("Gmail phase backfill: collecting", { collected });
+      }
+    );
 
-      const threadIds = response.items.map((t) => t.providerThreadId);
-      allThreadIds.push(...threadIds);
-      totalFetched += threadIds.length;
-      cursor = response.nextCursor;
-
-      log.debug("Gmail backfill: fetched thread list page", {
-        accountId: config.accountId,
-        fetched: threadIds.length,
-        total: totalFetched,
-        hasMore: response.hasMore,
-      });
-    } while (cursor);
-
-    log.info("Gmail backfill: collected all thread IDs", {
+    log.info("Gmail phase backfill: thread IDs collected", {
       accountId: config.accountId,
+      phase: config.phase,
       totalThreads: allThreadIds.length,
     });
 
-    // Phase 2: Deduplicate to find new threads
+    // If no threads found, phase is complete
+    if (allThreadIds.length === 0) {
+      result.success = true;
+      result.phaseComplete = true;
+      result.duration = Date.now() - startTime;
+      return result;
+    }
+
+    // Step 2: Deduplicate against existing threads
     const dedupeResult = await batchDeduplicateThreads(
       config.accountId,
       allThreadIds
     );
 
-    log.info("Gmail backfill: deduplication complete", {
+    const newThreadIds = dedupeResult.newIds;
+
+    log.info("Gmail phase backfill: deduplication complete", {
       accountId: config.accountId,
-      newThreads: dedupeResult.newIds.length,
+      phase: config.phase,
+      newThreads: newThreadIds.length,
       existingThreads: dedupeResult.existingIds.length,
     });
 
-    // Phase 3: Process threads (prioritize recent if configured)
-    const threadsToProcess = config.prioritizeRecent
-      ? allThreadIds // Already sorted by date desc from API
-      : allThreadIds;
+    // If all threads already exist, phase is complete
+    if (newThreadIds.length === 0) {
+      result.success = true;
+      result.phaseComplete = true;
+      result.duration = Date.now() - startTime;
+      return result;
+    }
 
-    const batchSize = config.batchSize;
-    let processed = 0;
+    result.threadsRemaining = newThreadIds.length;
 
-    for (let i = 0; i < threadsToProcess.length; i += batchSize) {
-      const batch = threadsToProcess.slice(i, i + batchSize);
-      const isNew = (id: string) => dedupeResult.newIds.includes(id);
+    // Step 3: Fetch threads in parallel batches
+    let processedCount = 0;
 
-      // Only process new threads (skip existing unless we want updates)
-      const newThreadsInBatch = batch.filter(isNew);
+    for (let i = 0; i < newThreadIds.length; i += config.batchSize) {
+      const batch = newThreadIds.slice(i, i + config.batchSize);
+      const batchStartTime = Date.now();
 
-      if (newThreadsInBatch.length > 0) {
-        const batchResult = await fetchAndProcessThreads(
-          client,
+      // Fetch batch in parallel
+      const fetchResult = await fetchThreadsParallel(client, batch, {
+        concurrency: config.threadFetchConcurrency,
+        batchDelayMs: 25, // Minimal delay for speed
+        onProgress: (fetched, _total) => {
+          const currentProcessed = processedCount + fetched;
+          const elapsed = Date.now() - startTime;
+          const estimated = estimateTimeRemaining(
+            currentProcessed,
+            newThreadIds.length,
+            elapsed
+          );
+          onProgress?.(currentProcessed, newThreadIds.length, estimated);
+        },
+      });
+
+      // Process fetched threads into database
+      if (fetchResult.threads.length > 0) {
+        const batchResult = await processBatch(
           config.accountId,
-          newThreadsInBatch,
+          fetchResult.threads,
           { skipExisting: true }
         );
 
@@ -252,23 +277,39 @@ export async function backfillGmail(
         result.errors.push(...batchResult.errors);
       }
 
-      processed += batch.length;
-      onProgress?.(processed, threadsToProcess.length);
+      result.errors.push(...fetchResult.errors);
+      processedCount += batch.length;
 
-      // Small delay to respect rate limits
-      if (i + batchSize < threadsToProcess.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
+      // Update progress
+      const elapsed = Date.now() - startTime;
+      const estimated = estimateTimeRemaining(
+        processedCount,
+        newThreadIds.length,
+        elapsed
+      );
+      onProgress?.(processedCount, newThreadIds.length, estimated);
+
+      log.debug("Gmail phase backfill: batch complete", {
+        accountId: config.accountId,
+        phase: config.phase,
+        batchSize: batch.length,
+        batchDuration: Date.now() - batchStartTime,
+        processed: processedCount,
+        total: newThreadIds.length,
+      });
     }
 
-    // Get final cursor for future incremental syncs
-    result.newCursor = await client.getInitialCursor();
+    // Phase complete
+    result.phaseComplete = true;
+    result.threadsRemaining = 0;
     result.success = result.errors.length === 0;
     result.duration = Date.now() - startTime;
 
-    log.info("Gmail backfill completed", {
+    log.info("Gmail phase backfill completed", {
       accountId: config.accountId,
+      phase: config.phase,
       ...result,
+      throughput: `${Math.round((result.threadsProcessed / result.duration) * 1000)} threads/sec`,
     });
 
     return result;
@@ -279,11 +320,26 @@ export async function backfillGmail(
       retryable: true,
     });
     result.duration = Date.now() - startTime;
-    log.error("Gmail backfill failed", error, {
+    log.error("Gmail phase backfill failed", error, {
       accountId: config.accountId,
+      phase: config.phase,
     });
     return result;
   }
+}
+
+/**
+ * Legacy backfill function for backwards compatibility.
+ * @deprecated Use backfillGmailPhase instead
+ */
+export async function backfillGmail(
+  client: GmailEmailClient,
+  config: BackfillConfig,
+  onProgress?: (progress: number, total: number) => void
+): Promise<SyncResult> {
+  return await backfillGmailPhase(client, config, (processed, total) => {
+    onProgress?.(processed, total);
+  });
 }
 
 // =============================================================================

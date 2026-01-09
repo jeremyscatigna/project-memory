@@ -22,10 +22,38 @@ import { organization } from "./organization";
 export interface EmailAccountSettings {
   syncEnabled: boolean;
   syncFrequencyMinutes: number;
-  backfillDays: number;
   excludeLabels?: string[];
   includeLabels?: string[];
   autoArchive?: boolean;
+}
+
+/**
+ * Backfill progress tracking for multi-phase import.
+ * Power users may have millions of emails spanning years.
+ */
+export interface BackfillProgress {
+  /** Current phase: priority (0-90d), extended (90d-1y), archive (1y+), complete */
+  phase: "priority" | "extended" | "archive" | "complete" | "idle";
+  /** Total threads discovered in current phase */
+  totalThreads: number;
+  /** Threads processed in current phase */
+  processedThreads: number;
+  /** Total messages processed across all phases */
+  totalMessages: number;
+  /** Phase-specific progress (0-100) */
+  phaseProgress: number;
+  /** Overall progress across all phases (0-100) */
+  overallProgress: number;
+  /** Timestamps for tracking */
+  phaseStartedAt?: string;
+  priorityCompletedAt?: string;
+  extendedCompletedAt?: string;
+  archiveCompletedAt?: string;
+  /** Error tracking */
+  lastError?: string;
+  errorCount: number;
+  /** Estimated completion */
+  estimatedTimeRemaining?: number; // seconds
 }
 
 export interface EmailRecipient {
@@ -103,8 +131,20 @@ export const emailAccount = pgTable(
     settings: jsonb("settings").$type<EmailAccountSettings>().default({
       syncEnabled: true,
       syncFrequencyMinutes: 5,
-      backfillDays: 90,
     }),
+
+    // Backfill tracking (multi-phase full history import)
+    backfillProgress: jsonb("backfill_progress")
+      .$type<BackfillProgress>()
+      .default({
+        phase: "idle",
+        totalThreads: 0,
+        processedThreads: 0,
+        totalMessages: 0,
+        phaseProgress: 0,
+        overallProgress: 0,
+        errorCount: 0,
+      }),
 
     // Timestamps
     createdAt: timestamp("created_at").defaultNow().notNull(),

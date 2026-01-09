@@ -16,13 +16,22 @@ import {
   type OutlookEmailClient,
 } from "../email-client";
 import { log } from "../logger";
-import { backfillGmail, syncGmailIncremental } from "./gmail-sync";
-import { backfillOutlook, syncOutlookIncremental } from "./outlook-sync";
+import { syncGmailIncremental } from "./gmail-sync";
+import { syncOutlookIncremental } from "./outlook-sync";
 import type { BackfillConfig, ProviderSyncOptions, SyncResult } from "./types";
 
 export * from "./deduplication";
-export { backfillGmail, syncGmailIncremental } from "./gmail-sync";
-export { backfillOutlook, syncOutlookIncremental } from "./outlook-sync";
+export {
+  backfillGmail,
+  backfillGmailPhase,
+  syncGmailIncremental,
+} from "./gmail-sync";
+export {
+  backfillOutlook,
+  backfillOutlookPhase,
+  syncOutlookIncremental,
+} from "./outlook-sync";
+export * from "./parallel-fetch";
 export * from "./processor";
 // Re-export types and modules
 export * from "./types";
@@ -184,15 +193,26 @@ export async function performIncrementalSync(
 }
 
 /**
- * Perform full backfill for an account.
+ * Perform a single-phase backfill for an account.
+ *
+ * NOTE: For production use, prefer the multi-phase backfill via Trigger.dev tasks
+ * (priorityBackfillTask, extendedBackfillTask, archiveBackfillTask) which:
+ * - Import full history automatically (not just 90 days)
+ * - Use parallel fetching for speed
+ * - Chain phases automatically
+ * - Provide progress tracking for UI
+ *
+ * This function is kept for backwards compatibility and testing.
  *
  * @param accountId - Email account ID
  * @param onProgress - Progress callback
+ * @param phase - Which phase to run (defaults to priority for last 90 days)
  * @returns Sync result
  */
 export async function performBackfill(
   accountId: string,
-  onProgress?: (progress: number, total: number) => void
+  onProgress?: (progress: number, total: number) => void,
+  phase: "priority" | "extended" | "archive" = "priority"
 ): Promise<SyncResult> {
   const account = await getAccountForSync(accountId);
 
@@ -226,33 +246,38 @@ export async function performBackfill(
         .where(eq(emailAccount.id, accountId));
     }
 
-    // Get backfill config from account settings
-    const settings = account.settings as {
-      backfillDays?: number;
-      syncFrequencyMinutes?: number;
-    } | null;
+    // Get date range for phase
+    const { getPhaseDateRange } = await import("./parallel-fetch");
+    const { BACKFILL_CONCURRENCY } = await import("./types");
+
+    const dateRange = getPhaseDateRange(phase);
+    const concurrency = BACKFILL_CONCURRENCY[phase];
 
     const config: BackfillConfig = {
       accountId,
       organizationId: account.organizationId,
-      backfillDays: settings?.backfillDays ?? 90,
-      batchSize: 50,
-      prioritizeRecent: true,
+      phase,
+      afterDate: dateRange.afterDate,
+      beforeDate: dateRange.beforeDate,
+      batchSize: concurrency.batchSize,
+      threadFetchConcurrency: concurrency.threadFetchConcurrency,
     };
 
     let result: SyncResult;
 
     if (account.provider === "gmail") {
-      result = await backfillGmail(
+      const { backfillGmailPhase } = await import("./gmail-sync");
+      result = await backfillGmailPhase(
         client as GmailEmailClient,
         config,
-        onProgress
+        (processed, total) => onProgress?.(processed, total)
       );
     } else if (account.provider === "outlook") {
-      result = await backfillOutlook(
+      const { backfillOutlookPhase } = await import("./outlook-sync");
+      result = await backfillOutlookPhase(
         client as OutlookEmailClient,
         config,
-        onProgress
+        (processed, total) => onProgress?.(processed, total)
       );
     } else {
       throw new Error(`Unsupported provider: ${account.provider}`);
