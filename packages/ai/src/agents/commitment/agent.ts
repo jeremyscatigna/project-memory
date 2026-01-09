@@ -566,7 +566,9 @@ function getClaimContext(claim?: PromiseClaimInput | RequestClaimInput): {
   requester?: string;
   requestee?: string;
 } {
-  if (!claim) return {};
+  if (!claim) {
+    return {};
+  }
 
   if ("promisor" in claim) {
     return {

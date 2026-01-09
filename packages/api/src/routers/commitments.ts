@@ -654,7 +654,9 @@ export const commitmentsRouter = router({
         (c) => c.dueDate && c.dueDate < now
       ).length;
       const dueThisWeek = commitments.filter((c) => {
-        if (!c.dueDate) return false;
+        if (!c.dueDate) {
+          return false;
+        }
         const weekFromNow = new Date();
         weekFromNow.setDate(weekFromNow.getDate() + 7);
         return c.dueDate >= now && c.dueDate <= weekFromNow;
@@ -702,7 +704,9 @@ export const commitmentsRouter = router({
       const overdue = active.filter((c) => c.dueDate && c.dueDate < now);
 
       const dueThisWeek = active.filter((c) => {
-        if (!c.dueDate) return false;
+        if (!c.dueDate) {
+          return false;
+        }
         return c.dueDate >= now && c.dueDate <= weekFromNow;
       });
 
@@ -710,7 +714,9 @@ export const commitmentsRouter = router({
       const owedToMe = active.filter((c) => c.direction === "owed_to_me");
 
       const completedThisMonth = allCommitments.filter((c) => {
-        if (c.status !== "completed" || !c.completedAt) return false;
+        if (c.status !== "completed" || !c.completedAt) {
+          return false;
+        }
         const monthAgo = new Date();
         monthAgo.setMonth(monthAgo.getMonth() - 1);
         return c.completedAt >= monthAgo;

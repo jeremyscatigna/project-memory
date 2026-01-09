@@ -417,7 +417,9 @@ export class DecisionAgent {
     // Find the message where decision was made
     const decisionDate = new Date(decision.decidedAt);
     const sourceMessage = context.messages.find((m) => {
-      if (!m.sentAt) return false;
+      if (!m.sentAt) {
+        return false;
+      }
       return Math.abs(m.sentAt.getTime() - decisionDate.getTime()) < 86_400_000; // Within 1 day
     });
 

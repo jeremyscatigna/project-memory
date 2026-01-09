@@ -422,7 +422,9 @@ function generateDigestEmailHtml(
     type: "overdue" | "today" | "upcoming",
     direction: "Owed by you" | "Owed to you"
   ) => {
-    if (items.length === 0) return "";
+    if (items.length === 0) {
+      return "";
+    }
 
     return `
       <div style="margin-bottom: 24px;">

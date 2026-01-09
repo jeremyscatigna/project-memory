@@ -148,7 +148,9 @@ function tryExplicitDate(
       const month = Number.parseInt(parts[0], 10) - 1;
       const day = Number.parseInt(parts[1], 10);
       let year = Number.parseInt(parts[2], 10);
-      if (year < 100) year += 2000;
+      if (year < 100) {
+        year += 2000;
+      }
 
       const date = new Date(year, month, day);
       if (!Number.isNaN(date.getTime())) {
@@ -312,8 +314,12 @@ function tryRelativeDate(
       const date = new Date(ref);
       const currentDay = date.getDay();
       let daysUntil = targetDay - currentDay;
-      if (daysUntil <= 0) daysUntil += 7; // Next occurrence
-      if (text.toLowerCase().includes("next")) daysUntil += 7;
+      if (daysUntil <= 0) {
+        daysUntil += 7; // Next occurrence
+      }
+      if (text.toLowerCase().includes("next")) {
+        daysUntil += 7;
+      }
       date.setDate(date.getDate() + daysUntil);
       return {
         date: date.toISOString(),
@@ -404,8 +410,12 @@ function tryUrgencyIndicator(
     const date = new Date(ref);
     date.setDate(date.getDate() + 1);
     // Skip to Monday if weekend
-    if (date.getDay() === 0) date.setDate(date.getDate() + 1);
-    if (date.getDay() === 6) date.setDate(date.getDate() + 2);
+    if (date.getDay() === 0) {
+      date.setDate(date.getDate() + 1);
+    }
+    if (date.getDay() === 6) {
+      date.setDate(date.getDate() + 2);
+    }
     return {
       date: date.toISOString(),
       confidence: 0.5,
