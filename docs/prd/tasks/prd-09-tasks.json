@@ -1,0 +1,354 @@
+{
+  "prdId": "PRD-09",
+  "title": "Risk & Policy Agent",
+  "description": "Agent 8: Contradiction detection, fraud signals, and policy enforcement",
+  "totalTasks": 13,
+  "phases": [
+    {
+      "id": "9.0",
+      "name": "Contradiction Detection",
+      "description": "Find conflicts with historical statements"
+    },
+    {
+      "id": "9.1",
+      "name": "Sensitive Data Detection",
+      "description": "Prevent information leaks"
+    },
+    {
+      "id": "9.2",
+      "name": "Fraud Detection",
+      "description": "Identify potential fraud attempts"
+    },
+    {
+      "id": "9.3",
+      "name": "Policy Enforcement",
+      "description": "Enforce organization policies"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Commitment Conflict Check",
+      "description": "Detect contradictions with past commitments",
+      "phase": "9.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/contradiction.ts"],
+      "subtasks": [
+        "Create checkCommitmentConflicts(draft, commitments) function",
+        "Extract claims from draft",
+        "Compare to existing commitments",
+        "Identify schedule conflicts (promised same time)",
+        "Identify capability conflicts (contradicting deliverables)",
+        "Return conflict details with evidence"
+      ],
+      "acceptanceCriteria": [
+        "Schedule conflicts detected",
+        "Contradicting promises flagged",
+        "Evidence linked for each conflict"
+      ],
+      "testStrategy": "Test with drafts that conflict with past commitments",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 2,
+      "title": "Implement Statement Consistency Check",
+      "description": "Detect contradictions with past statements",
+      "phase": "9.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/contradiction.ts"],
+      "subtasks": [
+        "Create checkStatementConsistency(draft, history) function",
+        "Extract factual claims from draft",
+        "Search historical claims semantically",
+        "Compare for contradiction vs consistency",
+        "Flag contradictions with severity"
+      ],
+      "acceptanceCriteria": [
+        "Contradicting statements detected",
+        "Historical evidence provided",
+        "Severity assessed"
+      ],
+      "testStrategy": "Test with contradicting and consistent statements",
+      "estimatedLOC": 110
+    },
+    {
+      "id": 3,
+      "title": "Implement Decision Reversal Detection",
+      "description": "Flag when reversing previous decisions",
+      "phase": "9.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/contradiction.ts"],
+      "subtasks": [
+        "Create checkDecisionReversal(draft, decisions) function",
+        "Extract decision statements from draft",
+        "Find related previous decisions",
+        "Detect reversal vs continuation",
+        "Flag reversals without acknowledgment"
+      ],
+      "acceptanceCriteria": [
+        "Reversals detected",
+        "Related decisions linked",
+        "Unacknowledged reversals flagged"
+      ],
+      "testStrategy": "Test with decision reversals",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 4,
+      "title": "Implement Conflict Resolution Suggestions",
+      "description": "Suggest how to address detected conflicts",
+      "phase": "9.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1, 2, 3],
+      "files": ["packages/ai/src/detectors/contradiction.ts"],
+      "subtasks": [
+        "Create suggestResolution(conflict) function",
+        "Generate acknowledge option (mention the change)",
+        "Generate explain option (provide rationale)",
+        "Generate retract option (remove contradicting content)",
+        "Return options ranked by appropriateness"
+      ],
+      "acceptanceCriteria": [
+        "Resolution options provided",
+        "Options actionable",
+        "Ranked by appropriateness"
+      ],
+      "testStrategy": "Test resolution quality for various conflicts",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 5,
+      "title": "Implement PII Detection",
+      "description": "Detect personally identifiable information in messages",
+      "phase": "9.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/sensitive.ts"],
+      "subtasks": [
+        "Create detectPII(content) function",
+        "Implement SSN pattern detection (XXX-XX-XXXX)",
+        "Implement credit card pattern detection",
+        "Implement phone number detection",
+        "Implement passport/ID number detection",
+        "Return PII types found with locations"
+      ],
+      "acceptanceCriteria": [
+        "All PII types detected",
+        "Location in text identified",
+        "Low false positive rate"
+      ],
+      "testStrategy": "Test with various PII formats",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 6,
+      "title": "Implement Confidential Content Detection",
+      "description": "Detect business confidential information",
+      "phase": "9.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/sensitive.ts"],
+      "subtasks": [
+        "Create detectConfidential(content, markers) function",
+        "Match against confidentiality keywords",
+        "Detect financial data patterns",
+        "Detect strategic information patterns",
+        "Support custom marker configuration"
+      ],
+      "acceptanceCriteria": [
+        "Confidential content flagged",
+        "Custom markers supported",
+        "Context considered"
+      ],
+      "testStrategy": "Test with business-sensitive content",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 7,
+      "title": "Implement Recipient Validation",
+      "description": "Warn about external recipients for sensitive content",
+      "phase": "9.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 6],
+      "files": ["packages/ai/src/detectors/sensitive.ts"],
+      "subtasks": [
+        "Create validateRecipients(content, recipients) function",
+        "Identify external recipients (different domain)",
+        "Check if content contains sensitive data",
+        "Flag external + sensitive combinations",
+        "Distinguish severity levels"
+      ],
+      "acceptanceCriteria": [
+        "External recipients identified",
+        "Sensitive content warning shown",
+        "Severity appropriate to risk"
+      ],
+      "testStrategy": "Test internal vs external recipient scenarios",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 8,
+      "title": "Implement Impersonation Detection",
+      "description": "Detect executive impersonation in incoming emails",
+      "phase": "9.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/fraud.ts"],
+      "subtasks": [
+        "Create detectImpersonation(message, knownSenders) function",
+        "Check sender against known executive addresses",
+        "Detect similar-looking domains (typosquatting)",
+        "Detect display name mismatches",
+        "Return risk score with reasons"
+      ],
+      "acceptanceCriteria": [
+        "Lookalike domains detected",
+        "Display name tricks caught",
+        "Risk score reflects severity"
+      ],
+      "testStrategy": "Test with impersonation attempts",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 9,
+      "title": "Implement Invoice Fraud Detection",
+      "description": "Detect fraudulent payment requests",
+      "phase": "9.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/fraud.ts"],
+      "subtasks": [
+        "Create detectInvoiceFraud(message) function",
+        "Detect payment request patterns",
+        "Check for bank detail change requests",
+        "Analyze urgency language patterns",
+        "Compare to known vendor patterns",
+        "Return risk score with indicators"
+      ],
+      "acceptanceCriteria": [
+        "Bank detail changes flagged",
+        "Urgency manipulation detected",
+        "Vendor pattern deviation caught"
+      ],
+      "testStrategy": "Test with known fraud patterns",
+      "estimatedLOC": 110
+    },
+    {
+      "id": 10,
+      "title": "Implement Phishing Detection",
+      "description": "Detect phishing attempts in emails",
+      "phase": "9.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/fraud.ts"],
+      "subtasks": [
+        "Create detectPhishing(message) function",
+        "Analyze URLs in message",
+        "Check URL reputation (via API)",
+        "Detect credential request patterns",
+        "Check sender authentication (SPF, DKIM)",
+        "Return risk score with indicators"
+      ],
+      "acceptanceCriteria": [
+        "Suspicious URLs flagged",
+        "Credential requests detected",
+        "Auth failures noted"
+      ],
+      "testStrategy": "Test with known phishing patterns",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 11,
+      "title": "Implement Policy Rule Matching",
+      "description": "Check messages against policy rules",
+      "phase": "9.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [],
+      "files": ["packages/ai/src/detectors/policy.ts"],
+      "subtasks": [
+        "Create matchPolicyRules(message, rules) function",
+        "Define policy rule schema",
+        "Implement keyword matching",
+        "Implement recipient rules (no external for X topic)",
+        "Implement content pattern rules",
+        "Return violated rules with details"
+      ],
+      "acceptanceCriteria": [
+        "Policy violations detected",
+        "Rules configurable",
+        "Violation details provided"
+      ],
+      "testStrategy": "Test with various policy configurations",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 12,
+      "title": "Implement Approval Workflow Triggers",
+      "description": "Trigger approvals for policy-defined actions",
+      "phase": "9.3",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [11],
+      "files": ["packages/ai/src/detectors/policy.ts"],
+      "subtasks": [
+        "Create triggerApproval(message, rule) function",
+        "Block message sending pending approval",
+        "Route to configured approver",
+        "Set approval timeout",
+        "Handle approval/rejection"
+      ],
+      "acceptanceCriteria": [
+        "Message blocked for approval",
+        "Approver notified",
+        "Timeout handled"
+      ],
+      "testStrategy": "Test approval flow end-to-end",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 13,
+      "title": "Implement Audit Logging",
+      "description": "Log all policy-relevant events for compliance",
+      "phase": "9.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [11],
+      "files": ["packages/ai/src/detectors/policy.ts"],
+      "subtasks": [
+        "Create logPolicyEvent(event) function",
+        "Log all risk checks performed",
+        "Log all alerts generated",
+        "Log user acknowledgments",
+        "Store audit records immutably"
+      ],
+      "acceptanceCriteria": [
+        "All checks logged",
+        "Audit trail complete",
+        "Records immutable"
+      ],
+      "testStrategy": "Verify audit completeness",
+      "estimatedLOC": 60
+    }
+  ],
+  "criticalPath": [1, 2, 5, 7, 8, 9, 11],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 1190
+  }
+}

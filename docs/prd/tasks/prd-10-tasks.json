@@ -1,0 +1,418 @@
+{
+  "prdId": "PRD-10",
+  "title": "Inbox & Thread Views",
+  "description": "User interface: Inbox briefs, thread detail, command bar",
+  "totalTasks": 15,
+  "phases": [
+    {
+      "id": "10.0",
+      "name": "Inbox View",
+      "description": "Smart inbox with briefs and suggestions"
+    },
+    {
+      "id": "10.1",
+      "name": "Thread Detail View",
+      "description": "Full thread with intelligence overlay"
+    },
+    {
+      "id": "10.2",
+      "name": "Command Bar",
+      "description": "Natural language query interface"
+    },
+    {
+      "id": "10.3",
+      "name": "Real-Time Updates",
+      "description": "Keep UI current with changes"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Thread Brief Card Component",
+      "description": "Create card showing 3-line brief with urgency and suggested action",
+      "phase": "10.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["apps/web/src/components/email/thread-brief.tsx"],
+      "subtasks": [
+        "Create ThreadBrief component with TypeScript",
+        "Display 3-line brief prominently (not subject line)",
+        "Show urgency badge with appropriate color",
+        "Display suggested action as primary CTA",
+        "Include sender avatar and name",
+        "Show time since last message",
+        "Add confidence indicator for AI-generated content"
+      ],
+      "acceptanceCriteria": [
+        "Brief is primary visual element",
+        "Urgency visually prominent",
+        "Action button immediately accessible"
+      ],
+      "testStrategy": "Visual regression tests, component tests for all states",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 2,
+      "title": "Implement Inbox List with Priority Sorting",
+      "description": "Create virtualized list of thread briefs sorted by priority",
+      "phase": "10.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["apps/web/src/components/email/thread-list.tsx"],
+      "subtasks": [
+        "Create ThreadList component with @tanstack/virtual",
+        "Implement priority-based sorting (urgent first)",
+        "Add section headers by priority tier",
+        "Implement keyboard navigation (j/k for next/prev)",
+        "Add loading skeletons for progressive loading",
+        "Handle empty state with helpful messaging"
+      ],
+      "acceptanceCriteria": [
+        "Renders 1000+ threads smoothly",
+        "Priority sorting correct",
+        "Keyboard navigation works"
+      ],
+      "testStrategy": "Performance tests with large lists, keyboard nav tests",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 3,
+      "title": "Implement Smart Filters",
+      "description": "Filter inbox by intelligence dimensions",
+      "phase": "10.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [2],
+      "files": ["apps/web/src/components/email/inbox-filters.tsx"],
+      "subtasks": [
+        "Create InboxFilters component",
+        "Add 'Has Commitments' filter toggle",
+        "Add 'Needs Response' filter",
+        "Add 'Has Open Questions' filter",
+        "Add 'From VIP' filter",
+        "Combine filters with AND logic",
+        "Show filter count badges"
+      ],
+      "acceptanceCriteria": [
+        "Filters apply instantly",
+        "Multiple filters combinable",
+        "Active filters visible"
+      ],
+      "testStrategy": "Test filter combinations, verify results",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 4,
+      "title": "Implement Batch Actions",
+      "description": "Apply actions to multiple selected threads",
+      "phase": "10.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [2],
+      "files": ["apps/web/src/components/email/batch-actions.tsx"],
+      "subtasks": [
+        "Create BatchActions toolbar component",
+        "Implement multi-select with checkboxes",
+        "Add 'Select All' with current filter",
+        "Add batch archive action",
+        "Add batch snooze action",
+        "Show confirmation for destructive actions",
+        "Display progress during batch operation"
+      ],
+      "acceptanceCriteria": [
+        "Multi-select intuitive",
+        "Actions apply to all selected",
+        "Progress visible"
+      ],
+      "testStrategy": "Test batch operations, verify all threads affected",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 5,
+      "title": "Implement Conversation Panel",
+      "description": "Display email thread with all messages",
+      "phase": "10.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["apps/web/src/components/email/conversation.tsx"],
+      "subtasks": [
+        "Create ConversationView component",
+        "Render messages in chronological order",
+        "Display message headers (from, to, date)",
+        "Render HTML email content safely",
+        "Handle message expansion/collapse",
+        "Show quoted content collapsed by default",
+        "Display attachments with download links"
+      ],
+      "acceptanceCriteria": [
+        "All messages rendered correctly",
+        "HTML displayed safely (sanitized)",
+        "Attachments accessible"
+      ],
+      "testStrategy": "Test with various email formats, XSS tests",
+      "estimatedLOC": 250
+    },
+    {
+      "id": 6,
+      "title": "Implement Intelligence Panel",
+      "description": "Sidebar showing extracted intelligence for thread",
+      "phase": "10.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": ["apps/web/src/components/email/intelligence-panel.tsx"],
+      "subtasks": [
+        "Create IntelligencePanel component",
+        "Display commitments section with status badges",
+        "Display decisions section with rationale preview",
+        "Display open questions section",
+        "Show claim confidence indicators",
+        "Add 'View Evidence' links for each item",
+        "Allow dismissing incorrect extractions"
+      ],
+      "acceptanceCriteria": [
+        "All intelligence types displayed",
+        "Evidence links work",
+        "Dismissal persists"
+      ],
+      "testStrategy": "Test with threads having various intelligence types",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 7,
+      "title": "Implement Memory Panel",
+      "description": "Show related historical context for thread",
+      "phase": "10.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["apps/web/src/components/email/memory-panel.tsx"],
+      "subtasks": [
+        "Create MemoryPanel component",
+        "Display related threads from PRD-06",
+        "Show relevant past decisions",
+        "Display relationship context for participants",
+        "Link to full context on click",
+        "Show relevance scores as visual indicator"
+      ],
+      "acceptanceCriteria": [
+        "Related content surfaced",
+        "Relevance clear",
+        "Navigation works"
+      ],
+      "testStrategy": "Test with threads on various topics",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 8,
+      "title": "Implement Draft Panel Integration",
+      "description": "Integrate drafting composer with thread view",
+      "phase": "10.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": ["apps/web/src/components/email/thread-reply.tsx"],
+      "subtasks": [
+        "Create ThreadReply component wrapping DraftComposer",
+        "Show reply inline or in split view",
+        "Pre-populate context from current thread",
+        "Add 'Generate AI Draft' button",
+        "Show consistency warnings from PRD-09",
+        "Integrate send functionality"
+      ],
+      "acceptanceCriteria": [
+        "Reply flows naturally from reading",
+        "AI draft one click away",
+        "Warnings visible before send"
+      ],
+      "testStrategy": "Test reply flow end-to-end",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 9,
+      "title": "Implement Global Search in Command Bar",
+      "description": "Build search functionality in command bar",
+      "phase": "10.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["apps/web/src/components/email/command-bar.tsx"],
+      "subtasks": [
+        "Create CommandBar component using cmdk library",
+        "Implement ⌘K shortcut to open",
+        "Add search input with debounced query",
+        "Display hybrid search results (threads, messages, decisions)",
+        "Show result type icons and snippets",
+        "Navigate to result on selection"
+      ],
+      "acceptanceCriteria": [
+        "⌘K opens command bar",
+        "Search results relevant",
+        "Navigation seamless"
+      ],
+      "testStrategy": "Test search quality, keyboard navigation",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 10,
+      "title": "Implement Ask Questions Flow",
+      "description": "Natural language Q&A in command bar",
+      "phase": "10.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [9],
+      "files": [
+        "apps/web/src/components/email/command-bar.tsx",
+        "apps/web/src/components/email/answer-view.tsx"
+      ],
+      "subtasks": [
+        "Detect question intent in query",
+        "Show 'Ask AI' option when question detected",
+        "Display loading state during answer generation",
+        "Render answer with inline citations",
+        "Make citations clickable to source",
+        "Support follow-up questions in context"
+      ],
+      "acceptanceCriteria": [
+        "Questions answered with citations",
+        "Citations link to sources",
+        "Follow-ups maintain context"
+      ],
+      "testStrategy": "Test with answerable and unanswerable questions",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 11,
+      "title": "Implement Quick Actions in Command Bar",
+      "description": "Execute actions via command bar commands",
+      "phase": "10.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [9],
+      "files": ["apps/web/src/components/email/command-bar.tsx"],
+      "subtasks": [
+        "Add action commands: 'archive', 'snooze', 'mark read'",
+        "Parse command arguments (snooze for 2 hours)",
+        "Execute action on current thread",
+        "Show confirmation toast",
+        "Support undo for destructive actions"
+      ],
+      "acceptanceCriteria": [
+        "Actions execute correctly",
+        "Arguments parsed",
+        "Undo available"
+      ],
+      "testStrategy": "Test each action command",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 12,
+      "title": "Implement Navigation Commands",
+      "description": "Navigate to views via command bar",
+      "phase": "10.2",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [9],
+      "files": ["apps/web/src/components/email/command-bar.tsx"],
+      "subtasks": [
+        "Add navigation commands: 'go to commitments', 'show decisions'",
+        "Parse navigation targets",
+        "Navigate with query parameters",
+        "Show navigation suggestions based on context"
+      ],
+      "acceptanceCriteria": [
+        "Navigation commands work",
+        "Context-aware suggestions",
+        "Smooth transition"
+      ],
+      "testStrategy": "Test navigation commands",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 13,
+      "title": "Implement New Email Notifications",
+      "description": "Alert users of new emails with real-time updates",
+      "phase": "10.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [2],
+      "files": [
+        "apps/web/src/components/email/new-email-toast.tsx",
+        "apps/web/src/hooks/email/useInbox.ts"
+      ],
+      "subtasks": [
+        "Create NewEmailToast component",
+        "Subscribe to sync completion events via WebSocket",
+        "Show toast for new urgent emails",
+        "Prepend new threads to inbox list",
+        "Update unread count badge",
+        "Handle notification permission"
+      ],
+      "acceptanceCriteria": [
+        "New emails appear without refresh",
+        "Urgent emails trigger notification",
+        "Count updates instantly"
+      ],
+      "testStrategy": "Test real-time updates, notification flow",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 14,
+      "title": "Implement Intelligence Updates",
+      "description": "Progressive loading of intelligence as processed",
+      "phase": "10.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6],
+      "files": ["apps/web/src/hooks/email/useThread.ts"],
+      "subtasks": [
+        "Subscribe to analysis completion events",
+        "Update thread brief when available",
+        "Update intelligence panel progressively",
+        "Show skeleton while processing",
+        "Handle processing failures gracefully"
+      ],
+      "acceptanceCriteria": [
+        "Intelligence appears as processed",
+        "Skeleton shows loading state",
+        "Failures handled"
+      ],
+      "testStrategy": "Test progressive loading",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 15,
+      "title": "Implement Optimistic Updates",
+      "description": "Immediate UI response to user actions",
+      "phase": "10.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [4],
+      "files": ["apps/web/src/hooks/email/useInbox.ts"],
+      "subtasks": [
+        "Implement optimistic archive (remove from list)",
+        "Implement optimistic status change",
+        "Reconcile with server response",
+        "Rollback on server error",
+        "Show subtle loading indicator during reconciliation"
+      ],
+      "acceptanceCriteria": [
+        "Actions feel instant",
+        "Server errors rollback",
+        "State stays consistent"
+      ],
+      "testStrategy": "Test optimistic updates, error rollback",
+      "estimatedLOC": 120
+    }
+  ],
+  "criticalPath": [1, 2, 5, 6, 9, 10, 13],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 2350
+  }
+}

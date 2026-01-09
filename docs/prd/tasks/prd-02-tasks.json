@@ -1,0 +1,564 @@
+{
+  "prdId": "PRD-02",
+  "title": "Email Sync Engine",
+  "description": "Incremental email synchronization via Trigger.dev with historical backfill and processing pipeline",
+  "totalTasks": 21,
+  "phases": [
+    {
+      "id": "2.0",
+      "name": "Sync Task Infrastructure",
+      "description": "Create Trigger.dev tasks for sync operations"
+    },
+    {
+      "id": "2.1",
+      "name": "Email Processing Pipeline",
+      "description": "Transform provider data into Evidence Store format"
+    },
+    {
+      "id": "2.2",
+      "name": "Provider-Specific Sync",
+      "description": "Implement Gmail and Outlook sync logic"
+    },
+    {
+      "id": "2.3",
+      "name": "Sync Orchestration",
+      "description": "Coordinate sync operations reliably"
+    },
+    {
+      "id": "2.4",
+      "name": "Downstream Triggers",
+      "description": "Connect sync to intelligence pipeline"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Create Sync Emails Task Skeleton",
+      "description": "Create Trigger.dev task foundation for incremental email synchronization",
+      "phase": "2.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["apps/server/src/trigger/email-sync.ts"],
+      "subtasks": [
+        "Define syncEmailsTask with Trigger.dev task() API",
+        "Accept accountId as payload parameter",
+        "Implement basic logging for task lifecycle",
+        "Configure retry policy (3 attempts, exponential backoff)",
+        "Add task metadata for monitoring"
+      ],
+      "acceptanceCriteria": [
+        "Task runs on manual trigger",
+        "Logs execution start/end",
+        "Retries on failure with backoff"
+      ],
+      "testStrategy": "Trigger task manually, verify logging, simulate failure for retry",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 2,
+      "title": "Create Backfill Emails Task Skeleton",
+      "description": "Create Trigger.dev task for historical email import",
+      "phase": "2.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["apps/server/src/trigger/email-backfill.ts"],
+      "subtasks": [
+        "Define backfillEmailsTask with Trigger.dev task() API",
+        "Accept accountId and optional dateRange as payload",
+        "Implement progress reporting using task.progress()",
+        "Configure long timeout (30 minutes for large accounts)",
+        "Support task resumption after interruption"
+      ],
+      "acceptanceCriteria": [
+        "Task accepts account ID and date range",
+        "Progress visible during execution",
+        "Handles large accounts without timeout"
+      ],
+      "testStrategy": "Run backfill on test account, verify progress updates, test timeout handling",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 3,
+      "title": "Implement Sync Cursor Management",
+      "description": "Create cursor system for tracking sync position",
+      "phase": "2.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 2],
+      "files": [
+        "apps/server/src/lib/sync/cursor.ts",
+        "packages/db/src/schema/email.ts"
+      ],
+      "subtasks": [
+        "Add syncCursor column to emailAccount table",
+        "Create getSyncCursor(accountId) function",
+        "Create updateSyncCursor(accountId, cursor) function",
+        "Support provider-specific cursor formats (historyId for Gmail, deltaLink for Outlook)",
+        "Implement cursor validation before use"
+      ],
+      "acceptanceCriteria": [
+        "Cursor persisted between sync runs",
+        "Cursor used to fetch only new changes",
+        "Invalid cursor detected and reset"
+      ],
+      "testStrategy": "Unit tests for cursor CRUD, integration test for cursor persistence",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 4,
+      "title": "Implement Job Status Tracking",
+      "description": "Create system for tracking sync job status and progress",
+      "phase": "2.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 2],
+      "files": ["apps/server/src/lib/sync/job-status.ts"],
+      "subtasks": [
+        "Create createSyncJob(accountId, type) function",
+        "Create updateJobProgress(jobId, progress) function",
+        "Create completeJob(jobId, result) function",
+        "Create failJob(jobId, error) function",
+        "Add job status enum: pending, running, completed, failed",
+        "Track emails processed, errors encountered"
+      ],
+      "acceptanceCriteria": [
+        "Job status visible in database",
+        "Progress updates in real-time",
+        "Completion/failure states captured"
+      ],
+      "testStrategy": "Unit tests for status transitions, integration test for full lifecycle",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 5,
+      "title": "Implement Thread Reconstruction",
+      "description": "Build thread structure from raw messages",
+      "phase": "2.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [4],
+      "files": ["apps/server/src/lib/sync/processor.ts"],
+      "subtasks": [
+        "Create processThread(rawThread) function",
+        "Extract thread metadata (subject, snippet, labelIds)",
+        "Compute participant list from all messages",
+        "Calculate thread timestamps (first message, last message)",
+        "Determine thread status (has unread, needs response)",
+        "Create or update emailThread record"
+      ],
+      "acceptanceCriteria": [
+        "Threads created with all metadata",
+        "Multi-message threads correctly grouped",
+        "Thread updates handled (not duplicated)"
+      ],
+      "testStrategy": "Unit tests for various thread structures, integration test with database",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 6,
+      "title": "Implement Message Normalization",
+      "description": "Parse and normalize message content from provider format",
+      "phase": "2.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": [
+        "apps/server/src/lib/sync/processor.ts",
+        "apps/server/src/lib/sync/parser.ts"
+      ],
+      "subtasks": [
+        "Create processMessage(rawMessage) function",
+        "Parse email headers (From, To, CC, BCC, Date, Subject)",
+        "Handle multipart messages (text/plain, text/html)",
+        "Convert HTML to plain text for indexing",
+        "Handle character encoding (UTF-8, ISO-8859-1, etc.)",
+        "Extract inline images and references",
+        "Create emailMessage record with normalized data"
+      ],
+      "acceptanceCriteria": [
+        "All standard headers parsed correctly",
+        "Multipart messages handled (prefer HTML, fallback to text)",
+        "Unicode content preserved correctly"
+      ],
+      "testStrategy": "Unit tests with diverse email samples, encoding tests",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 7,
+      "title": "Implement Participant Extraction",
+      "description": "Extract and resolve message participants",
+      "phase": "2.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [6],
+      "files": ["apps/server/src/lib/sync/processor.ts"],
+      "subtasks": [
+        "Create extractParticipants(message) function",
+        "Parse email addresses with display names",
+        "Handle various formats: 'Name <email>', '<email>', 'email'",
+        "Identify participant role (from, to, cc, bcc)",
+        "Create or link to existing contact records",
+        "Create emailParticipant records"
+      ],
+      "acceptanceCriteria": [
+        "All participants extracted with roles",
+        "Display names parsed correctly",
+        "Unicode in names handled"
+      ],
+      "testStrategy": "Unit tests for address parsing, integration with contact creation",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 8,
+      "title": "Implement Attachment Processing",
+      "description": "Extract attachment metadata from messages",
+      "phase": "2.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6],
+      "files": ["apps/server/src/lib/sync/processor.ts"],
+      "subtasks": [
+        "Create processAttachments(message) function",
+        "Extract attachment metadata (filename, size, mimeType)",
+        "Store provider attachment ID for later retrieval",
+        "Distinguish inline images from attachments",
+        "Create emailAttachment records",
+        "Calculate attachment hash for deduplication"
+      ],
+      "acceptanceCriteria": [
+        "All attachments extracted with metadata",
+        "Attachment content retrievable via provider ID",
+        "Large attachments handled without memory issues"
+      ],
+      "testStrategy": "Unit tests with various attachment types, size limit tests",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 9,
+      "title": "Implement Deduplication Logic",
+      "description": "Prevent duplicate emails in Evidence Store",
+      "phase": "2.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 6],
+      "files": ["apps/server/src/lib/sync/deduplication.ts"],
+      "subtasks": [
+        "Create shouldInsertMessage(providerMessageId, accountId) function",
+        "Check existence by provider message ID and account",
+        "Use database constraint as final guard",
+        "Handle race conditions with optimistic insert",
+        "Return existing record ID if duplicate"
+      ],
+      "acceptanceCriteria": [
+        "No duplicate messages on re-sync",
+        "Concurrent inserts don't create duplicates",
+        "Existing message ID returned for linking"
+      ],
+      "testStrategy": "Concurrent insert tests, re-sync tests",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 10,
+      "title": "Implement Gmail Incremental Sync",
+      "description": "Use Gmail History API for change detection",
+      "phase": "2.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 9],
+      "files": ["apps/server/src/lib/sync/gmail-sync.ts"],
+      "subtasks": [
+        "Create syncGmailAccount(account, cursor) function",
+        "Call history.list with startHistoryId cursor",
+        "Collect all changed message IDs from history",
+        "Batch fetch changed messages (up to 100 per request)",
+        "Handle message additions, label changes, deletions",
+        "Update cursor to latest historyId"
+      ],
+      "acceptanceCriteria": [
+        "Only changed messages fetched",
+        "Deletions handled (soft delete)",
+        "Cursor updated after successful sync"
+      ],
+      "testStrategy": "Mock Gmail History API, test various change types",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 11,
+      "title": "Implement Gmail Backfill",
+      "description": "Paginate through all Gmail threads for initial import",
+      "phase": "2.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 9],
+      "files": ["apps/server/src/lib/sync/gmail-sync.ts"],
+      "subtasks": [
+        "Create backfillGmailAccount(account, options) function",
+        "List all thread IDs with pagination (100 per page)",
+        "Batch fetch thread details",
+        "Process threads in reverse chronological order",
+        "Report progress based on total thread count",
+        "Record final historyId as sync cursor"
+      ],
+      "acceptanceCriteria": [
+        "All historical threads imported",
+        "Progress reported during backfill",
+        "Handles accounts with 100K+ threads"
+      ],
+      "testStrategy": "Test with varying account sizes, pagination tests",
+      "estimatedLOC": 160
+    },
+    {
+      "id": 12,
+      "title": "Implement Outlook Incremental Sync",
+      "description": "Use Microsoft Graph Delta API for change detection",
+      "phase": "2.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 9],
+      "files": ["apps/server/src/lib/sync/outlook-sync.ts"],
+      "subtasks": [
+        "Create syncOutlookAccount(account, cursor) function",
+        "Call delta endpoint with deltaLink cursor",
+        "Process all changed messages from delta response",
+        "Handle message additions, changes, deletions",
+        "Group messages by conversationId for threading",
+        "Update cursor to new deltaLink"
+      ],
+      "acceptanceCriteria": [
+        "Only changed messages fetched",
+        "Conversations properly grouped",
+        "Delta link updated after sync"
+      ],
+      "testStrategy": "Mock Graph API delta endpoint, test change scenarios",
+      "estimatedLOC": 170
+    },
+    {
+      "id": 13,
+      "title": "Implement Outlook Backfill",
+      "description": "Paginate through all Outlook messages for initial import",
+      "phase": "2.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 9],
+      "files": ["apps/server/src/lib/sync/outlook-sync.ts"],
+      "subtasks": [
+        "Create backfillOutlookAccount(account, options) function",
+        "List all messages sorted by receivedDateTime descending",
+        "Handle pagination with @odata.nextLink",
+        "Group messages into conversations for threading",
+        "Report progress based on estimated total",
+        "Record deltaLink as sync cursor when complete"
+      ],
+      "acceptanceCriteria": [
+        "All historical messages imported",
+        "Conversations reconstructed as threads",
+        "Large accounts handled efficiently"
+      ],
+      "testStrategy": "Test with varying account sizes, conversation grouping tests",
+      "estimatedLOC": 170
+    },
+    {
+      "id": 14,
+      "title": "Implement Rate Limit Coordination",
+      "description": "Respect provider rate limits across all sync jobs",
+      "phase": "2.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [10, 11, 12, 13],
+      "files": ["apps/server/src/lib/sync/rate-limiter.ts"],
+      "subtasks": [
+        "Create RateLimiter class with per-provider tracking",
+        "Track quota usage across concurrent jobs",
+        "Implement exponential backoff on 429 responses",
+        "Parse Retry-After headers from providers",
+        "Queue requests when approaching limits",
+        "Share rate limit state across Trigger.dev workers"
+      ],
+      "acceptanceCriteria": [
+        "Rate limits never exceeded",
+        "Backoff implemented correctly",
+        "Multiple concurrent jobs share quota"
+      ],
+      "testStrategy": "Simulate rate limit responses, concurrent job tests",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 15,
+      "title": "Implement Scheduled Sync",
+      "description": "Create cron-scheduled sync for all accounts",
+      "phase": "2.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [10, 12],
+      "files": ["apps/server/src/trigger/email-sync.ts"],
+      "subtasks": [
+        "Create scheduledSyncTask with cron schedule",
+        "Query accounts due for sync based on syncIntervalMinutes",
+        "Fan out to individual sync tasks",
+        "Respect per-account sync preferences",
+        "Skip accounts currently syncing"
+      ],
+      "acceptanceCriteria": [
+        "Sync runs on configured interval per account",
+        "Concurrent syncs for same account prevented",
+        "Respects user sync preferences"
+      ],
+      "testStrategy": "Test scheduling logic, verify interval adherence",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 16,
+      "title": "Implement Concurrency Control",
+      "description": "Ensure only one sync runs per account at a time",
+      "phase": "2.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [4, 15],
+      "files": ["apps/server/src/lib/sync/concurrency.ts"],
+      "subtasks": [
+        "Create acquireSyncLock(accountId) function",
+        "Create releaseSyncLock(accountId) function",
+        "Use database advisory lock or Redis lock",
+        "Set lock timeout to prevent deadlocks",
+        "Queue additional sync requests for later execution"
+      ],
+      "acceptanceCriteria": [
+        "Only one sync per account at a time",
+        "Queued syncs execute after current completes",
+        "Lock released even on task failure"
+      ],
+      "testStrategy": "Concurrent sync trigger tests, lock timeout tests",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 17,
+      "title": "Implement Error Recovery",
+      "description": "Handle and recover from sync failures gracefully",
+      "phase": "2.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [4, 14, 16],
+      "files": ["apps/server/src/lib/sync/error-handler.ts"],
+      "subtasks": [
+        "Classify errors as transient vs permanent",
+        "Implement retry logic for transient errors",
+        "Handle auth failures (trigger reconnection)",
+        "Handle cursor invalidation (reset and full sync)",
+        "Send alerts for persistent failures",
+        "Update job status with error details"
+      ],
+      "acceptanceCriteria": [
+        "Transient errors retried automatically",
+        "Auth failures prompt user reconnection",
+        "Persistent errors alerted to team"
+      ],
+      "testStrategy": "Simulate various error scenarios, verify recovery behavior",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 18,
+      "title": "Implement Sync Status API",
+      "description": "Create API for users to view and control sync",
+      "phase": "2.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [4, 15],
+      "files": ["packages/api/src/routers/email-sync.ts"],
+      "subtasks": [
+        "Create emailSyncRouter with authed procedures",
+        "Implement getStatus(accountId) procedure",
+        "Implement triggerSync(accountId) for on-demand sync",
+        "Return job history with progress",
+        "Include next scheduled sync time"
+      ],
+      "acceptanceCriteria": [
+        "Users can see sync status",
+        "Manual sync triggerable via API",
+        "Job history accessible"
+      ],
+      "testStrategy": "Integration tests for all procedures",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 19,
+      "title": "Emit Thread Processing Events",
+      "description": "Trigger downstream intelligence extraction",
+      "phase": "2.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": ["apps/server/src/lib/sync/events.ts"],
+      "subtasks": [
+        "Create emitThreadCreated(threadId) function",
+        "Create emitThreadUpdated(threadId, changes) function",
+        "Trigger PRD-03 thread analysis task",
+        "Include thread metadata in event payload",
+        "Support batch event emission for efficiency"
+      ],
+      "acceptanceCriteria": [
+        "New threads trigger analysis",
+        "Updated threads trigger re-analysis",
+        "Events delivered reliably"
+      ],
+      "testStrategy": "Verify event emission, test downstream task triggering",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 20,
+      "title": "Emit Embedding Generation Events",
+      "description": "Queue messages for vector embedding",
+      "phase": "2.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [6],
+      "files": ["apps/server/src/lib/sync/events.ts"],
+      "subtasks": [
+        "Create emitMessagesForEmbedding(messageIds) function",
+        "Queue messages lacking embeddings",
+        "Batch message IDs for efficient processing",
+        "Trigger PRD-06 embedding generation task",
+        "Track embedding status on message record"
+      ],
+      "acceptanceCriteria": [
+        "New messages queued for embedding",
+        "Batch sizes optimized for API efficiency",
+        "Embedding status trackable"
+      ],
+      "testStrategy": "Verify embedding queue population, batch size tests",
+      "estimatedLOC": 50
+    },
+    {
+      "id": 21,
+      "title": "Implement Sync Completion Notifications",
+      "description": "Notify users of sync results",
+      "phase": "2.4",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [4],
+      "files": ["apps/server/src/lib/sync/notifications.ts"],
+      "subtasks": [
+        "Create notifySyncComplete(job) function",
+        "Summarize sync results (new threads, updated, errors)",
+        "Send notification via appropriate channel (websocket, toast)",
+        "Include link to sync status page",
+        "Only notify for significant syncs (not empty)"
+      ],
+      "acceptanceCriteria": [
+        "Users notified of sync completion",
+        "Error syncs clearly communicated",
+        "Empty syncs don't spam notifications"
+      ],
+      "testStrategy": "Test notification content, verify filtering",
+      "estimatedLOC": 70
+    }
+  ],
+  "criticalPath": [1, 3, 5, 6, 9, 10, 15, 16, 19],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 2310
+  }
+}

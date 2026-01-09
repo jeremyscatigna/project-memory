@@ -1,0 +1,545 @@
+{
+  "prd": "PRD-00",
+  "title": "Data Model Foundation",
+  "description": "Evidence Store + Intelligence Graph + pgvector schemas - the foundational data layer for MEMORYSTACK",
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Configure PostgreSQL with pgvector Extension",
+      "description": "Set up PostgreSQL 15+ with the pgvector extension enabled for vector similarity search. This is the foundational infrastructure for all semantic search capabilities.",
+      "details": "Implementation Steps:\n1. Update `docker-compose.dev.yml` to use PostgreSQL 15+ image with pgvector\n2. Add initialization script to enable pgvector extension on database creation\n3. Create `packages/db/src/extensions/pgvector.sql` with:\n   ```sql\n   CREATE EXTENSION IF NOT EXISTS vector;\n   ```\n4. Update `packages/db/drizzle.config.ts` to run extension script before migrations\n5. Add health check for pgvector availability in connection initialization\n6. Document pgvector version requirements in README\n\nVerification:\n- Run `SELECT * FROM pg_extension WHERE extname = 'vector'` should return row\n- Vector operations should work: `SELECT '[1,2,3]'::vector`",
+      "testStrategy": "Unit Tests:\n- Extension presence check passes\n- Vector type creation works\n- Basic vector operations (casting, dimension check)\n\nIntegration Tests:\n- Database initializes with pgvector enabled\n- Migrations run successfully with vector columns\n- Connection pool handles vector operations",
+      "priority": "critical",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Update Docker Compose for pgvector",
+          "description": "Use pgvector-enabled PostgreSQL image (pgvector/pgvector:pg16)",
+          "dependencies": [],
+          "details": "Update docker-compose.dev.yml and docker-compose.yml to use official pgvector image",
+          "status": "pending",
+          "testStrategy": "Container starts successfully with pgvector"
+        },
+        {
+          "id": 2,
+          "title": "Create extension initialization script",
+          "description": "SQL script to enable pgvector extension",
+          "dependencies": [1],
+          "details": "Create init.sql in packages/db/src/extensions/",
+          "status": "pending",
+          "testStrategy": "Extension enabled on fresh database"
+        },
+        {
+          "id": 3,
+          "title": "Update Drizzle configuration",
+          "description": "Configure Drizzle to run extension script",
+          "dependencies": [2],
+          "details": "Modify drizzle.config.ts to include extension setup",
+          "status": "pending",
+          "testStrategy": "db:push includes extension creation"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Create Drizzle Custom Types for pgvector",
+      "description": "Define custom Drizzle ORM types for pgvector vector columns to enable type-safe vector operations in TypeScript.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/types/vector.ts`\n2. Define custom pgVector type using Drizzle's customType:\n   ```typescript\n   import { customType } from 'drizzle-orm/pg-core';\n   \n   export const vector = customType<{\n     data: number[];\n     driverData: string;\n     config: { dimensions: number };\n   }>({\n     dataType(config) {\n       return `vector(${config?.dimensions ?? 1536})`;\n     },\n     toDriver(value: number[]): string {\n       return `[${value.join(',')}]`;\n     },\n     fromDriver(value: string): number[] {\n       return JSON.parse(value.replace(/\\[|\\]/g, (m) => m));\n     },\n   });\n   ```\n3. Export from `packages/db/src/types/index.ts`\n4. Add type inference helpers for vector columns\n5. Create helper functions for vector operations (cosine similarity, etc.)",
+      "testStrategy": "Unit Tests:\n- Vector type compiles correctly\n- toDriver/fromDriver roundtrip preserves data\n- Dimension validation works\n- Type inference produces correct TypeScript types\n\nIntegration Tests:\n- Vector columns can be created in schema\n- Insert/select operations work with vector data\n- Similarity queries return correct results",
+      "priority": "critical",
+      "dependencies": [1],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define customType for vector",
+          "description": "Create Drizzle customType definition for pgvector",
+          "dependencies": [],
+          "details": "Implement toDriver, fromDriver, and dataType functions",
+          "status": "pending",
+          "testStrategy": "Type compiles and creates correct SQL"
+        },
+        {
+          "id": 2,
+          "title": "Add dimension configuration",
+          "description": "Support configurable vector dimensions (1536, 384, etc.)",
+          "dependencies": [1],
+          "details": "Add config parameter for dimensions with sensible default",
+          "status": "pending",
+          "testStrategy": "Different dimension vectors can be created"
+        },
+        {
+          "id": 3,
+          "title": "Create vector operation helpers",
+          "description": "Helper functions for cosine similarity, L2 distance",
+          "dependencies": [1],
+          "details": "Create SQL template literals for common operations",
+          "status": "pending",
+          "testStrategy": "Similarity queries return correct ordering"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Define Email Account Schema",
+      "description": "Create the emailAccount table to store OAuth connections for Gmail and Outlook providers with encrypted token storage.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/schema/email.ts`\n2. Define emailAccount table:\n   ```typescript\n   export const emailAccountProviderEnum = pgEnum('email_account_provider', ['gmail', 'outlook']);\n   export const emailAccountStatusEnum = pgEnum('email_account_status', ['active', 'expired', 'revoked', 'syncing']);\n   \n   export const emailAccount = pgTable('email_account', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),\n     organizationId: text('organization_id').references(() => organization.id, { onDelete: 'set null' }),\n     provider: emailAccountProviderEnum('provider').notNull(),\n     email: text('email').notNull(),\n     displayName: text('display_name'),\n     accessToken: text('access_token').notNull(), // encrypted\n     refreshToken: text('refresh_token').notNull(), // encrypted\n     tokenExpiresAt: timestamp('token_expires_at').notNull(),\n     syncCursor: text('sync_cursor'),\n     lastSyncAt: timestamp('last_sync_at'),\n     lastSyncStatus: text('last_sync_status'),\n     status: emailAccountStatusEnum('status').notNull().default('active'),\n     isPrimary: boolean('is_primary').notNull().default(false),\n     settings: jsonb('settings').$type<EmailAccountSettings>(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('email_account_user_idx').on(table.userId),\n     index('email_account_org_idx').on(table.organizationId),\n     unique('email_account_user_email_unique').on(table.userId, table.email),\n   ]);\n   ```\n3. Add EmailAccountSettings type definition\n4. Export types: `EmailAccount`, `NewEmailAccount`",
+      "testStrategy": "Unit Tests:\n- Schema compiles without errors\n- All enums defined correctly\n- Type inference produces correct types\n\nIntegration Tests:\n- Table creates successfully\n- CRUD operations work\n- Unique constraint prevents duplicate email per user\n- Cascade delete removes accounts when user deleted",
+      "priority": "critical",
+      "dependencies": [1],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create email.ts schema file",
+          "description": "Initialize schema file with imports",
+          "dependencies": [],
+          "details": "Create packages/db/src/schema/email.ts",
+          "status": "pending",
+          "testStrategy": "File exists and imports work"
+        },
+        {
+          "id": 2,
+          "title": "Define provider and status enums",
+          "description": "Create pgEnum for provider types and account status",
+          "dependencies": [1],
+          "details": "gmail/outlook providers, active/expired/revoked/syncing status",
+          "status": "pending",
+          "testStrategy": "Enums create correct database types"
+        },
+        {
+          "id": 3,
+          "title": "Define emailAccount table",
+          "description": "Full table definition with all columns",
+          "dependencies": [2],
+          "details": "Include token storage, sync state, settings",
+          "status": "pending",
+          "testStrategy": "Table creates with all columns"
+        },
+        {
+          "id": 4,
+          "title": "Add indexes and constraints",
+          "description": "Create indexes for query performance",
+          "dependencies": [3],
+          "details": "User index, org index, unique email constraint",
+          "status": "pending",
+          "testStrategy": "Indexes created, constraints enforced"
+        },
+        {
+          "id": 5,
+          "title": "Export types",
+          "description": "Export EmailAccount and NewEmailAccount types",
+          "dependencies": [3],
+          "details": "Use $inferSelect and $inferInsert",
+          "status": "pending",
+          "testStrategy": "Types correctly inferred"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Define Email Thread Schema",
+      "description": "Create the emailThread table to store email thread containers with metadata aggregation.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/email.ts`:\n   ```typescript\n   export const emailThread = pgTable('email_thread', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     accountId: text('account_id').notNull().references(() => emailAccount.id, { onDelete: 'cascade' }),\n     providerThreadId: text('provider_thread_id').notNull(),\n     subject: text('subject'),\n     snippet: text('snippet'),\n     participantEmails: text('participant_emails').array(),\n     messageCount: integer('message_count').notNull().default(0),\n     hasAttachments: boolean('has_attachments').notNull().default(false),\n     firstMessageAt: timestamp('first_message_at'),\n     lastMessageAt: timestamp('last_message_at'),\n     labels: text('labels').array(),\n     isRead: boolean('is_read').notNull().default(false),\n     isStarred: boolean('is_starred').notNull().default(false),\n     isArchived: boolean('is_archived').notNull().default(false),\n     // Intelligence metadata (populated by agents)\n     briefSummary: text('brief_summary'),\n     intentClassification: text('intent_classification'),\n     urgencyScore: real('urgency_score'),\n     sentimentScore: real('sentiment_score'),\n     hasOpenLoops: boolean('has_open_loops').default(false),\n     lastAnalyzedAt: timestamp('last_analyzed_at'),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('email_thread_account_idx').on(table.accountId),\n     index('email_thread_last_message_idx').on(table.lastMessageAt),\n     unique('email_thread_provider_unique').on(table.accountId, table.providerThreadId),\n   ]);\n   ```\n2. Export `EmailThread`, `NewEmailThread` types",
+      "testStrategy": "Unit Tests:\n- Schema compiles correctly\n- Array columns defined properly\n- Intelligence fields nullable\n\nIntegration Tests:\n- Thread creation with all fields\n- Provider ID uniqueness enforced\n- Cascade delete from account",
+      "priority": "critical",
+      "dependencies": [3],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define emailThread table",
+          "description": "Core thread table with provider metadata",
+          "dependencies": [],
+          "details": "Include providerThreadId, participant emails, timestamps",
+          "status": "pending",
+          "testStrategy": "Table creates successfully"
+        },
+        {
+          "id": 2,
+          "title": "Add intelligence metadata columns",
+          "description": "Columns for agent-populated data",
+          "dependencies": [1],
+          "details": "briefSummary, urgencyScore, sentimentScore, hasOpenLoops",
+          "status": "pending",
+          "testStrategy": "Nullable columns work correctly"
+        },
+        {
+          "id": 3,
+          "title": "Add thread indexes",
+          "description": "Indexes for common query patterns",
+          "dependencies": [1],
+          "details": "Account index, lastMessage index, provider uniqueness",
+          "status": "pending",
+          "testStrategy": "Query performance acceptable"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Define Email Message Schema",
+      "description": "Create the emailMessage table to store individual email messages with full content and headers.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/email.ts`:\n   ```typescript\n   export const emailMessage = pgTable('email_message', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     threadId: text('thread_id').notNull().references(() => emailThread.id, { onDelete: 'cascade' }),\n     providerMessageId: text('provider_message_id').notNull(),\n     inReplyTo: text('in_reply_to'),\n     references: text('references').array(),\n     fromEmail: text('from_email').notNull(),\n     fromName: text('from_name'),\n     toRecipients: jsonb('to_recipients').$type<EmailRecipient[]>(),\n     ccRecipients: jsonb('cc_recipients').$type<EmailRecipient[]>(),\n     bccRecipients: jsonb('bcc_recipients').$type<EmailRecipient[]>(),\n     subject: text('subject'),\n     bodyText: text('body_text'),\n     bodyHtml: text('body_html'),\n     snippet: text('snippet'),\n     sentAt: timestamp('sent_at'),\n     receivedAt: timestamp('received_at'),\n     headers: jsonb('headers').$type<Record<string, string>>(),\n     labelIds: text('label_ids').array(),\n     sizeBytes: integer('size_bytes'),\n     // For ordering within thread\n     messageIndex: integer('message_index').notNull().default(0),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('email_message_thread_idx').on(table.threadId),\n     index('email_message_from_idx').on(table.fromEmail),\n     index('email_message_sent_idx').on(table.sentAt),\n     unique('email_message_provider_unique').on(table.threadId, table.providerMessageId),\n   ]);\n   ```\n2. Define EmailRecipient type\n3. Export types",
+      "testStrategy": "Unit Tests:\n- Schema compiles with JSONB types\n- Recipient type serialization works\n- Array columns handle empty arrays\n\nIntegration Tests:\n- Message insertion with all fields\n- Large body text handling (10MB+)\n- Thread cascade delete removes messages",
+      "priority": "critical",
+      "dependencies": [4],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define EmailRecipient type",
+          "description": "TypeScript type for recipient JSONB",
+          "dependencies": [],
+          "details": "{ email: string, name?: string }",
+          "status": "pending",
+          "testStrategy": "Type serializes correctly"
+        },
+        {
+          "id": 2,
+          "title": "Define emailMessage table",
+          "description": "Full message table with content storage",
+          "dependencies": [1],
+          "details": "Include body, headers, recipients, threading info",
+          "status": "pending",
+          "testStrategy": "Table creates successfully"
+        },
+        {
+          "id": 3,
+          "title": "Add message indexes",
+          "description": "Indexes for query performance",
+          "dependencies": [2],
+          "details": "Thread index, from index, sent date index",
+          "status": "pending",
+          "testStrategy": "Queries use indexes"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Define Email Attachment Schema",
+      "description": "Create the emailAttachment table to store attachment metadata without binary content.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/email.ts`:\n   ```typescript\n   export const emailAttachment = pgTable('email_attachment', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     messageId: text('message_id').notNull().references(() => emailMessage.id, { onDelete: 'cascade' }),\n     providerAttachmentId: text('provider_attachment_id'),\n     filename: text('filename').notNull(),\n     mimeType: text('mime_type'),\n     sizeBytes: integer('size_bytes'),\n     contentId: text('content_id'), // For inline attachments\n     isInline: boolean('is_inline').notNull().default(false),\n     // For downloaded attachments (optional)\n     storageKey: text('storage_key'),\n     downloadedAt: timestamp('downloaded_at'),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   }, (table) => [\n     index('email_attachment_message_idx').on(table.messageId),\n   ]);\n   ```\n2. Export types",
+      "testStrategy": "Unit Tests:\n- Schema compiles\n- Optional fields nullable\n\nIntegration Tests:\n- Attachment links to message\n- Cascade delete from message",
+      "priority": "high",
+      "dependencies": [5],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define emailAttachment table",
+          "description": "Attachment metadata storage",
+          "dependencies": [],
+          "details": "Filename, mimeType, size, inline flag",
+          "status": "pending",
+          "testStrategy": "Table creates successfully"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Define Email Participant Schema",
+      "description": "Create the emailParticipant table for identity resolution linking messages to contacts.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/email.ts`:\n   ```typescript\n   export const emailParticipantRoleEnum = pgEnum('email_participant_role', ['from', 'to', 'cc', 'bcc']);\n   \n   export const emailParticipant = pgTable('email_participant', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     messageId: text('message_id').notNull().references(() => emailMessage.id, { onDelete: 'cascade' }),\n     contactId: text('contact_id').references(() => contact.id, { onDelete: 'set null' }),\n     email: text('email').notNull(),\n     displayName: text('display_name'),\n     role: emailParticipantRoleEnum('role').notNull(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   }, (table) => [\n     index('email_participant_message_idx').on(table.messageId),\n     index('email_participant_contact_idx').on(table.contactId),\n     index('email_participant_email_idx').on(table.email),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- Role enum correct\n- Contact reference nullable\n\nIntegration Tests:\n- Participant creation\n- Contact linking works\n- Email index queries fast",
+      "priority": "high",
+      "dependencies": [5, 11],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 8,
+      "title": "Define Evidence Store Relations",
+      "description": "Create Drizzle relations for the Evidence Store tables to enable eager loading.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/email.ts`:\n   ```typescript\n   export const emailAccountRelations = relations(emailAccount, ({ many, one }) => ({\n     threads: many(emailThread),\n     user: one(user, { fields: [emailAccount.userId], references: [user.id] }),\n     organization: one(organization, { fields: [emailAccount.organizationId], references: [organization.id] }),\n   }));\n   \n   export const emailThreadRelations = relations(emailThread, ({ many, one }) => ({\n     account: one(emailAccount, { fields: [emailThread.accountId], references: [emailAccount.id] }),\n     messages: many(emailMessage),\n     claims: many(claim),\n     commitments: many(commitment),\n     decisions: many(decision),\n   }));\n   \n   export const emailMessageRelations = relations(emailMessage, ({ many, one }) => ({\n     thread: one(emailThread, { fields: [emailMessage.threadId], references: [emailThread.id] }),\n     attachments: many(emailAttachment),\n     participants: many(emailParticipant),\n     embedding: one(messageEmbedding),\n   }));\n   ```",
+      "testStrategy": "Integration Tests:\n- Eager loading works (account.threads.messages)\n- Relation queries produce correct SQL\n- No N+1 queries with proper includes",
+      "priority": "high",
+      "dependencies": [3, 4, 5, 6, 7],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 9,
+      "title": "Define Claim Schema",
+      "description": "Create the claim table for storing atomic facts extracted from emails.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/schema/intelligence.ts`\n2. Define claim table:\n   ```typescript\n   export const claimTypeEnum = pgEnum('claim_type', [\n     'fact', 'promise', 'request', 'question', 'decision', 'opinion', 'deadline', 'price', 'contact_info'\n   ]);\n   \n   export const claim = pgTable('claim', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),\n     threadId: text('thread_id').references(() => emailThread.id, { onDelete: 'cascade' }),\n     type: claimTypeEnum('type').notNull(),\n     text: text('text').notNull(),\n     normalizedText: text('normalized_text'),\n     confidence: real('confidence').notNull().default(0.5),\n     sourceMessageIds: text('source_message_ids').array().notNull(),\n     quotedText: text('quoted_text'),\n     extractedAt: timestamp('extracted_at').defaultNow().notNull(),\n     extractionModel: text('extraction_model'),\n     extractionVersion: text('extraction_version'),\n     isUserVerified: boolean('is_user_verified').default(false),\n     userCorrectedText: text('user_corrected_text'),\n     metadata: jsonb('metadata').$type<ClaimMetadata>(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('claim_org_idx').on(table.organizationId),\n     index('claim_thread_idx').on(table.threadId),\n     index('claim_type_idx').on(table.type),\n     index('claim_confidence_idx').on(table.confidence),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- All claim types defined\n- Confidence default works\n- JSONB metadata serializes\n\nIntegration Tests:\n- Claim creation with evidence\n- Thread cascade delete\n- Type filtering queries",
+      "priority": "critical",
+      "dependencies": [4],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create intelligence.ts schema file",
+          "description": "Initialize Intelligence Graph schema",
+          "dependencies": [],
+          "details": "Create packages/db/src/schema/intelligence.ts",
+          "status": "pending",
+          "testStrategy": "File exists"
+        },
+        {
+          "id": 2,
+          "title": "Define claim type enum",
+          "description": "Enum for all claim types",
+          "dependencies": [1],
+          "details": "fact, promise, request, question, decision, etc.",
+          "status": "pending",
+          "testStrategy": "Enum creates correctly"
+        },
+        {
+          "id": 3,
+          "title": "Define claim table",
+          "description": "Full claim table with evidence linking",
+          "dependencies": [2],
+          "details": "Include confidence, sourceMessageIds, user corrections",
+          "status": "pending",
+          "testStrategy": "Table creates with all columns"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Define Commitment Schema",
+      "description": "Create the commitment table for tracking promises, tasks, and follow-ups.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/intelligence.ts`:\n   ```typescript\n   export const commitmentStatusEnum = pgEnum('commitment_status', [\n     'pending', 'in_progress', 'completed', 'cancelled', 'overdue', 'waiting'\n   ]);\n   export const commitmentPriorityEnum = pgEnum('commitment_priority', ['low', 'medium', 'high', 'urgent']);\n   \n   export const commitment = pgTable('commitment', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),\n     claimId: text('claim_id').references(() => claim.id, { onDelete: 'set null' }),\n     debtorContactId: text('debtor_contact_id').references(() => contact.id, { onDelete: 'set null' }),\n     creditorContactId: text('creditor_contact_id').references(() => contact.id, { onDelete: 'set null' }),\n     title: text('title').notNull(),\n     description: text('description'),\n     dueDate: timestamp('due_date'),\n     dueDateConfidence: real('due_date_confidence'),\n     dueDateSource: text('due_date_source'), // 'explicit', 'inferred', 'user_set'\n     status: commitmentStatusEnum('status').notNull().default('pending'),\n     priority: commitmentPriorityEnum('priority').notNull().default('medium'),\n     completedAt: timestamp('completed_at'),\n     lastReminderAt: timestamp('last_reminder_at'),\n     reminderCount: integer('reminder_count').notNull().default(0),\n     sourceThreadId: text('source_thread_id').references(() => emailThread.id, { onDelete: 'set null' }),\n     sourceMessageId: text('source_message_id').references(() => emailMessage.id, { onDelete: 'set null' }),\n     confidence: real('confidence').notNull().default(0.5),\n     isUserVerified: boolean('is_user_verified').default(false),\n     metadata: jsonb('metadata').$type<CommitmentMetadata>(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('commitment_org_idx').on(table.organizationId),\n     index('commitment_debtor_idx').on(table.debtorContactId),\n     index('commitment_creditor_idx').on(table.creditorContactId),\n     index('commitment_status_idx').on(table.status),\n     index('commitment_due_idx').on(table.dueDate),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- Status transitions valid\n- Priority enum correct\n- Nullable fields work\n\nIntegration Tests:\n- Commitment lifecycle (pending → completed)\n- Overdue detection query\n- Contact reference integrity",
+      "priority": "critical",
+      "dependencies": [9, 11],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 11,
+      "title": "Define Contact Schema",
+      "description": "Create the contact table for unified contact profiles with relationship metrics.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/intelligence.ts`:\n   ```typescript\n   export const contact = pgTable('contact', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),\n     primaryEmail: text('primary_email').notNull(),\n     emails: text('emails').array(),\n     displayName: text('display_name'),\n     firstName: text('first_name'),\n     lastName: text('last_name'),\n     company: text('company'),\n     title: text('title'),\n     phone: text('phone'),\n     linkedinUrl: text('linkedin_url'),\n     avatarUrl: text('avatar_url'),\n     // Relationship metrics (updated by agents)\n     firstInteractionAt: timestamp('first_interaction_at'),\n     lastInteractionAt: timestamp('last_interaction_at'),\n     totalThreads: integer('total_threads').notNull().default(0),\n     totalMessages: integer('total_messages').notNull().default(0),\n     avgResponseTimeMinutes: integer('avg_response_time_minutes'),\n     responseRate: real('response_rate'),\n     sentimentScore: real('sentiment_score'),\n     importanceScore: real('importance_score'),\n     healthScore: real('health_score'),\n     isVip: boolean('is_vip').default(false),\n     isAtRisk: boolean('is_at_risk').default(false),\n     tags: text('tags').array(),\n     notes: text('notes'),\n     lastEnrichedAt: timestamp('last_enriched_at'),\n     metadata: jsonb('metadata').$type<ContactMetadata>(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('contact_org_idx').on(table.organizationId),\n     index('contact_primary_email_idx').on(table.primaryEmail),\n     index('contact_importance_idx').on(table.importanceScore),\n     unique('contact_org_email_unique').on(table.organizationId, table.primaryEmail),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- All metric fields nullable\n- Array fields work\n- Unique constraint on org+email\n\nIntegration Tests:\n- Contact creation\n- Metric updates\n- VIP filtering query",
+      "priority": "critical",
+      "dependencies": [1],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 12,
+      "title": "Define Decision Schema",
+      "description": "Create the decision table for storing decisions with rationale and supersession tracking.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/intelligence.ts`:\n   ```typescript\n   export const decision = pgTable('decision', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),\n     claimId: text('claim_id').references(() => claim.id, { onDelete: 'set null' }),\n     title: text('title').notNull(),\n     statement: text('statement').notNull(),\n     rationale: text('rationale'),\n     alternatives: jsonb('alternatives').$type<DecisionAlternative[]>(),\n     ownerContactIds: text('owner_contact_ids').array(),\n     participantContactIds: text('participant_contact_ids').array(),\n     decidedAt: timestamp('decided_at').notNull(),\n     confidence: real('confidence').notNull().default(0.5),\n     supersededById: text('superseded_by_id').references(() => decision.id, { onDelete: 'set null' }),\n     supersededAt: timestamp('superseded_at'),\n     sourceThreadId: text('source_thread_id').references(() => emailThread.id, { onDelete: 'set null' }),\n     sourceMessageIds: text('source_message_ids').array(),\n     topicIds: text('topic_ids').array(),\n     isUserVerified: boolean('is_user_verified').default(false),\n     metadata: jsonb('metadata').$type<DecisionMetadata>(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('decision_org_idx').on(table.organizationId),\n     index('decision_decided_at_idx').on(table.decidedAt),\n     index('decision_superseded_idx').on(table.supersededById),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- Self-reference (supersededById) works\n- JSONB alternatives serializes\n- Array fields work\n\nIntegration Tests:\n- Decision creation\n- Supersession chain query\n- Topic filtering",
+      "priority": "critical",
+      "dependencies": [9, 11],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 13,
+      "title": "Define Topic Schema",
+      "description": "Create the topic table for dynamic topic taxonomy.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/intelligence.ts`:\n   ```typescript\n   export const topic = pgTable('topic', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),\n     parentId: text('parent_id').references(() => topic.id, { onDelete: 'set null' }),\n     name: text('name').notNull(),\n     slug: text('slug').notNull(),\n     description: text('description'),\n     confidence: real('confidence').notNull().default(0.5),\n     threadCount: integer('thread_count').notNull().default(0),\n     claimCount: integer('claim_count').notNull().default(0),\n     lastUsedAt: timestamp('last_used_at'),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('topic_org_idx').on(table.organizationId),\n     index('topic_parent_idx').on(table.parentId),\n     unique('topic_org_slug_unique').on(table.organizationId, table.slug),\n   ]);\n   \n   // Junction table for thread-topic association\n   export const threadTopic = pgTable('thread_topic', {\n     threadId: text('thread_id').notNull().references(() => emailThread.id, { onDelete: 'cascade' }),\n     topicId: text('topic_id').notNull().references(() => topic.id, { onDelete: 'cascade' }),\n     confidence: real('confidence').notNull().default(0.5),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   }, (table) => [\n     primaryKey({ columns: [table.threadId, table.topicId] }),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- Self-reference for hierarchy\n- Junction table primary key\n\nIntegration Tests:\n- Topic hierarchy queries\n- Thread-topic association\n- Cascade deletes",
+      "priority": "high",
+      "dependencies": [4],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 14,
+      "title": "Define Message Embedding Schema",
+      "description": "Create the messageEmbedding table for storing pgvector embeddings of messages.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/schema/vectors.ts`:\n   ```typescript\n   import { vector } from '../types/vector';\n   \n   export const messageEmbedding = pgTable('message_embedding', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     messageId: text('message_id').notNull().references(() => emailMessage.id, { onDelete: 'cascade' }).unique(),\n     embedding: vector('embedding', { dimensions: 1536 }).notNull(),\n     model: text('model').notNull(), // e.g., 'text-embedding-3-small'\n     modelVersion: text('model_version'),\n     tokenCount: integer('token_count'),\n     inputHash: text('input_hash'), // For re-embedding detection\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   });\n   ```\n2. Create HNSW index for similarity search:\n   ```typescript\n   // In a separate migration or init script:\n   // CREATE INDEX ON message_embedding USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);\n   ```",
+      "testStrategy": "Unit Tests:\n- Vector type creates correct SQL\n- Dimension validation works\n\nIntegration Tests:\n- Embedding storage and retrieval\n- Similarity search returns results\n- HNSW index improves query time",
+      "priority": "high",
+      "dependencies": [2, 5],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create vectors.ts schema file",
+          "description": "Initialize vector schema file",
+          "dependencies": [],
+          "details": "Create packages/db/src/schema/vectors.ts",
+          "status": "pending",
+          "testStrategy": "File exists"
+        },
+        {
+          "id": 2,
+          "title": "Define messageEmbedding table",
+          "description": "Table for message vector embeddings",
+          "dependencies": [1],
+          "details": "Include embedding column, model info, unique message constraint",
+          "status": "pending",
+          "testStrategy": "Table creates with vector column"
+        },
+        {
+          "id": 3,
+          "title": "Create HNSW index",
+          "description": "Create HNSW index for fast similarity search",
+          "dependencies": [2],
+          "details": "Use vector_cosine_ops, tune m and ef_construction",
+          "status": "pending",
+          "testStrategy": "Index used in EXPLAIN for similarity queries"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Define Thread Embedding Schema",
+      "description": "Create the threadEmbedding table for thread-level semantic search.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/vectors.ts`:\n   ```typescript\n   export const threadEmbeddingAggregationEnum = pgEnum('thread_embedding_aggregation', ['mean', 'first', 'weighted', 'max_pool']);\n   \n   export const threadEmbedding = pgTable('thread_embedding', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     threadId: text('thread_id').notNull().references(() => emailThread.id, { onDelete: 'cascade' }).unique(),\n     embedding: vector('embedding', { dimensions: 1536 }).notNull(),\n     aggregationMethod: threadEmbeddingAggregationEnum('aggregation_method').notNull().default('mean'),\n     model: text('model').notNull(),\n     messageCount: integer('message_count').notNull(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   });\n   ```\n2. Create HNSW index",
+      "testStrategy": "Unit Tests:\n- Aggregation enum correct\n- Vector dimensions match\n\nIntegration Tests:\n- Thread embedding creation\n- Update on new messages\n- Thread-level similarity search",
+      "priority": "high",
+      "dependencies": [14],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 16,
+      "title": "Define Claim Embedding Schema",
+      "description": "Create the claimEmbedding table for semantic search on extracted claims.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/vectors.ts`:\n   ```typescript\n   export const claimEmbedding = pgTable('claim_embedding', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     claimId: text('claim_id').notNull().references(() => claim.id, { onDelete: 'cascade' }).unique(),\n     embedding: vector('embedding', { dimensions: 1536 }).notNull(),\n     model: text('model').notNull(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   });\n   ```\n2. Create HNSW index",
+      "testStrategy": "Integration Tests:\n- Claim embedding storage\n- Semantic claim search\n- 'What did we decide about X?' queries",
+      "priority": "high",
+      "dependencies": [9, 14],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 17,
+      "title": "Define Processing Job Schema",
+      "description": "Create the processingJob table for tracking AI processing jobs.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/schema/processing.ts`:\n   ```typescript\n   export const processingJobTypeEnum = pgEnum('processing_job_type', [\n     'sync', 'backfill', 'thread_analysis', 'embedding', 'commitment_extraction', \n     'decision_extraction', 'relationship_analysis', 'risk_analysis'\n   ]);\n   export const processingJobStatusEnum = pgEnum('processing_job_status', [\n     'pending', 'running', 'completed', 'failed', 'cancelled'\n   ]);\n   \n   export const processingJob = pgTable('processing_job', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     type: processingJobTypeEnum('type').notNull(),\n     status: processingJobStatusEnum('status').notNull().default('pending'),\n     accountId: text('account_id').references(() => emailAccount.id, { onDelete: 'cascade' }),\n     threadId: text('thread_id').references(() => emailThread.id, { onDelete: 'cascade' }),\n     priority: integer('priority').notNull().default(0),\n     startedAt: timestamp('started_at'),\n     completedAt: timestamp('completed_at'),\n     errorMessage: text('error_message'),\n     errorStack: text('error_stack'),\n     retryCount: integer('retry_count').notNull().default(0),\n     maxRetries: integer('max_retries').notNull().default(3),\n     progress: real('progress'), // 0-1\n     itemsProcessed: integer('items_processed'),\n     itemsTotal: integer('items_total'),\n     metadata: jsonb('metadata').$type<ProcessingJobMetadata>(),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n     updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),\n   }, (table) => [\n     index('processing_job_status_idx').on(table.status),\n     index('processing_job_type_idx').on(table.type),\n     index('processing_job_account_idx').on(table.accountId),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- All job types defined\n- Status transitions valid\n\nIntegration Tests:\n- Job creation and status updates\n- Progress tracking\n- Failed job retry",
+      "priority": "high",
+      "dependencies": [3, 4],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 18,
+      "title": "Define Processing Audit Schema",
+      "description": "Create the processingAudit table for detailed AI operation logging.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/processing.ts`:\n   ```typescript\n   export const processingAudit = pgTable('processing_audit', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     jobId: text('job_id').references(() => processingJob.id, { onDelete: 'cascade' }),\n     action: text('action').notNull(), // e.g., 'classify_intent', 'extract_claims'\n     model: text('model').notNull(), // e.g., 'claude-3-5-sonnet'\n     provider: text('provider').notNull(), // e.g., 'anthropic', 'openai'\n     inputTokens: integer('input_tokens'),\n     outputTokens: integer('output_tokens'),\n     totalTokens: integer('total_tokens'),\n     costCents: integer('cost_cents'),\n     latencyMs: integer('latency_ms'),\n     inputPreview: text('input_preview'), // First 500 chars\n     outputPreview: text('output_preview'), // First 500 chars\n     confidence: real('confidence'),\n     success: boolean('success').notNull().default(true),\n     errorType: text('error_type'),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   }, (table) => [\n     index('processing_audit_job_idx').on(table.jobId),\n     index('processing_audit_action_idx').on(table.action),\n     index('processing_audit_created_idx').on(table.createdAt),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- Audit record creation\n- Token counting fields\n\nIntegration Tests:\n- Audit linked to job\n- Cost calculation accuracy\n- Latency tracking",
+      "priority": "medium",
+      "dependencies": [17],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 19,
+      "title": "Define Evidence Link Schema",
+      "description": "Create the evidenceLink table for provenance chains between intelligence and source.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/schema/processing.ts`:\n   ```typescript\n   export const evidenceLinkSourceTypeEnum = pgEnum('evidence_link_source_type', ['claim', 'commitment', 'decision']);\n   export const evidenceLinkTargetTypeEnum = pgEnum('evidence_link_target_type', ['message', 'thread', 'attachment']);\n   \n   export const evidenceLink = pgTable('evidence_link', {\n     id: text('id').primaryKey().$defaultFn(() => randomUUID()),\n     sourceType: evidenceLinkSourceTypeEnum('source_type').notNull(),\n     sourceId: text('source_id').notNull(),\n     targetType: evidenceLinkTargetTypeEnum('target_type').notNull(),\n     targetId: text('target_id').notNull(),\n     quotedText: text('quoted_text'),\n     startOffset: integer('start_offset'),\n     endOffset: integer('end_offset'),\n     confidence: real('confidence').notNull().default(1.0),\n     isPrimary: boolean('is_primary').notNull().default(false),\n     createdAt: timestamp('created_at').defaultNow().notNull(),\n   }, (table) => [\n     index('evidence_link_source_idx').on(table.sourceType, table.sourceId),\n     index('evidence_link_target_idx').on(table.targetType, table.targetId),\n   ]);\n   ```",
+      "testStrategy": "Unit Tests:\n- Polymorphic references work\n- Offset tracking\n\nIntegration Tests:\n- Evidence chain retrieval\n- 'Show me the source' functionality\n- Citation generation",
+      "priority": "high",
+      "dependencies": [9, 10, 12, 5],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 20,
+      "title": "Create Schema Index File",
+      "description": "Create the barrel export file that exports all schemas.",
+      "details": "Implementation Steps:\n1. Update `packages/db/src/schema/index.ts`:\n   ```typescript\n   // Existing exports\n   export * from './auth';\n   export * from './organization';\n   export * from './audit';\n   export * from './credits';\n   \n   // New MEMORYSTACK exports\n   export * from './email';\n   export * from './intelligence';\n   export * from './vectors';\n   export * from './processing';\n   ```\n2. Ensure all relations are exported\n3. Ensure all types are exported",
+      "testStrategy": "Unit Tests:\n- All exports accessible from index\n- No circular dependencies\n- TypeScript compilation succeeds\n\nIntegration Tests:\n- Import * from '@saas-template/db/schema' works\n- All tables accessible",
+      "priority": "high",
+      "dependencies": [
+        3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 21,
+      "title": "Generate and Apply Migrations",
+      "description": "Generate Drizzle migrations for all new tables and apply them.",
+      "details": "Implementation Steps:\n1. Run `bun run db:generate` to create migration files\n2. Review generated SQL for correctness\n3. Ensure pgvector extension is created before vector columns\n4. Run `bun run db:push` to apply to development database\n5. Verify all tables created in Drizzle Studio\n6. Test foreign key relationships\n7. Verify indexes created",
+      "testStrategy": "Integration Tests:\n- All tables exist in database\n- Foreign keys enforced\n- Indexes created and used\n- Vector operations work\n\nManual Verification:\n- Drizzle Studio shows all tables\n- Sample data insertable",
+      "priority": "critical",
+      "dependencies": [20],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Generate migration files",
+          "description": "Run db:generate",
+          "dependencies": [],
+          "details": "bun run db:generate",
+          "status": "pending",
+          "testStrategy": "Migration files created"
+        },
+        {
+          "id": 2,
+          "title": "Review and adjust migrations",
+          "description": "Ensure correct order and extension setup",
+          "dependencies": [1],
+          "details": "Check pgvector extension runs first",
+          "status": "pending",
+          "testStrategy": "SQL is valid"
+        },
+        {
+          "id": 3,
+          "title": "Apply migrations",
+          "description": "Run db:push",
+          "dependencies": [2],
+          "details": "bun run db:push",
+          "status": "pending",
+          "testStrategy": "No errors during migration"
+        },
+        {
+          "id": 4,
+          "title": "Verify in Drizzle Studio",
+          "description": "Check all tables and relations",
+          "dependencies": [3],
+          "details": "bun run db:studio, inspect tables",
+          "status": "pending",
+          "testStrategy": "All tables visible and correct"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "Create Seed Data for Development",
+      "description": "Create seed scripts with sample data for development and testing.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/seed/email-seed.ts`:\n   - Sample email accounts (mock Gmail/Outlook)\n   - Sample threads with realistic messages\n   - Sample claims, commitments, decisions\n   - Sample embeddings (can be random for dev)\n2. Create `packages/db/src/seed/index.ts` to orchestrate\n3. Add `db:seed` script to package.json\n4. Ensure seed is idempotent (can run multiple times)",
+      "testStrategy": "Manual Verification:\n- Seed runs without errors\n- Data visible in Drizzle Studio\n- Sample data realistic for testing",
+      "priority": "medium",
+      "dependencies": [21],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 23,
+      "title": "Implement Vector Similarity Search Helper",
+      "description": "Create helper functions for pgvector similarity search operations.",
+      "details": "Implementation Steps:\n1. Create `packages/db/src/lib/vector-search.ts`:\n   ```typescript\n   import { sql } from 'drizzle-orm';\n   import { db } from '../index';\n   import { messageEmbedding, threadEmbedding, claimEmbedding } from '../schema';\n   \n   export async function searchSimilarMessages(\n     queryEmbedding: number[],\n     options: {\n       limit?: number;\n       threshold?: number;\n       accountIds?: string[];\n     }\n   ) {\n     const { limit = 10, threshold = 0.7, accountIds } = options;\n     \n     return db.execute(sql`\n       SELECT \n         m.*,\n         1 - (me.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity\n       FROM message_embedding me\n       JOIN email_message m ON m.id = me.message_id\n       JOIN email_thread t ON t.id = m.thread_id\n       WHERE 1 - (me.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) > ${threshold}\n       ${accountIds ? sql`AND t.account_id = ANY(${accountIds})` : sql``}\n       ORDER BY me.embedding <=> ${JSON.stringify(queryEmbedding)}::vector\n       LIMIT ${limit}\n     `);\n   }\n   \n   export async function searchSimilarClaims(...) { ... }\n   export async function searchSimilarThreads(...) { ... }\n   ```",
+      "testStrategy": "Unit Tests:\n- SQL generation correct\n- Threshold filtering works\n- Account filtering works\n\nIntegration Tests:\n- Returns ranked results\n- Similarity scores correct\n- Performance acceptable (<100ms for 100K embeddings)",
+      "priority": "high",
+      "dependencies": [14, 21],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 24,
+      "title": "Implement Hybrid Search Helper",
+      "description": "Create helper for combining vector and keyword search.",
+      "details": "Implementation Steps:\n1. Add to `packages/db/src/lib/vector-search.ts`:\n   ```typescript\n   export async function hybridSearch(\n     query: string,\n     queryEmbedding: number[],\n     options: {\n       vectorWeight?: number; // 0-1, default 0.5\n       limit?: number;\n       accountIds?: string[];\n     }\n   ) {\n     const { vectorWeight = 0.5, limit = 10, accountIds } = options;\n     const keywordWeight = 1 - vectorWeight;\n     \n     // Use RRF (Reciprocal Rank Fusion) for combining\n     return db.execute(sql`\n       WITH vector_results AS (\n         SELECT m.id, ROW_NUMBER() OVER (ORDER BY me.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as v_rank\n         FROM message_embedding me\n         JOIN email_message m ON m.id = me.message_id\n         LIMIT 100\n       ),\n       keyword_results AS (\n         SELECT m.id, ROW_NUMBER() OVER (ORDER BY ts_rank(to_tsvector('english', m.body_text), plainto_tsquery('english', ${query})) DESC) as k_rank\n         FROM email_message m\n         WHERE to_tsvector('english', m.body_text) @@ plainto_tsquery('english', ${query})\n         LIMIT 100\n       )\n       SELECT \n         COALESCE(v.id, k.id) as id,\n         (${vectorWeight} / (60 + COALESCE(v.v_rank, 1000))) + \n         (${keywordWeight} / (60 + COALESCE(k.k_rank, 1000))) as rrf_score\n       FROM vector_results v\n       FULL OUTER JOIN keyword_results k ON v.id = k.id\n       ORDER BY rrf_score DESC\n       LIMIT ${limit}\n     `);\n   }\n   ```",
+      "testStrategy": "Integration Tests:\n- Hybrid search returns results\n- RRF scoring works correctly\n- Weight adjustment affects results",
+      "priority": "medium",
+      "dependencies": [23],
+      "status": "pending",
+      "subtasks": []
+    }
+  ],
+  "metadata": {
+    "totalTasks": 24,
+    "criticalPath": [1, 2, 3, 4, 5, 9, 10, 11, 12, 14, 20, 21],
+    "estimatedComplexity": "high",
+    "estimatedEffort": "2-3 weeks",
+    "riskFactors": [
+      "pgvector extension availability on cloud providers",
+      "Vector search performance at scale",
+      "Schema migration complexity with existing data"
+    ]
+  }
+}

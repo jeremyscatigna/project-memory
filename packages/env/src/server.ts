@@ -15,11 +15,31 @@ export const env = createEnv({
       .enum(["development", "production", "test"])
       .default("development"),
 
-    // OAuth providers (optional)
+    // ==========================================================================
+    // MEMORYSTACK: OAuth Providers
+    // These are used for BOTH user authentication AND email access
+    // ==========================================================================
+
+    // Google/Gmail OAuth (requires Google Cloud project with Gmail API enabled)
+    // Used for: User sign-up/sign-in AND Gmail email access
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
+
+    // Microsoft/Outlook OAuth (requires Azure AD app registration)
+    // Used for: User sign-up/sign-in AND Outlook email access
+    MICROSOFT_CLIENT_ID: z.string().optional(),
+    MICROSOFT_CLIENT_SECRET: z.string().optional(),
+    MICROSOFT_TENANT_ID: z.string().default("common"), // 'common' for multi-tenant
+
+    // Legacy aliases (for backward compatibility)
+    GMAIL_CLIENT_ID: z.string().optional(),
+    GMAIL_CLIENT_SECRET: z.string().optional(),
+    OUTLOOK_CLIENT_ID: z.string().optional(),
+    OUTLOOK_CLIENT_SECRET: z.string().optional(),
+    OUTLOOK_TENANT_ID: z.string().default("common"),
+
+    // Token encryption key (32 bytes, base64 encoded for AES-256-GCM)
+    TOKEN_ENCRYPTION_KEY: z.string().min(32).optional(),
 
     // Email (Resend)
     RESEND_API_KEY: z.string().optional(),

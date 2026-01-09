@@ -1,0 +1,589 @@
+{
+  "prdId": "PRD-01",
+  "title": "Email Provider Integration",
+  "description": "Gmail and Outlook OAuth integration with unified email client abstraction",
+  "totalTasks": 22,
+  "phases": [
+    {
+      "id": "1.0",
+      "name": "OAuth Configuration",
+      "description": "Configure OAuth clients for Gmail and Outlook"
+    },
+    {
+      "id": "1.1",
+      "name": "Account Management API",
+      "description": "Create tRPC router for email account operations"
+    },
+    {
+      "id": "1.2",
+      "name": "Email Client Abstraction",
+      "description": "Create unified interface for email providers"
+    },
+    {
+      "id": "1.3",
+      "name": "Account Management UI",
+      "description": "Build account connection/management interface"
+    },
+    {
+      "id": "1.4",
+      "name": "OAuth Callback Handlers",
+      "description": "Handle OAuth redirects from providers"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Create Gmail OAuth Configuration",
+      "description": "Configure Gmail OAuth 2.0 client with required scopes for read-only email access",
+      "phase": "1.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/auth/src/providers/gmail.ts"],
+      "subtasks": [
+        "Define GMAIL_SCOPES constant with readonly, metadata, and profile scopes",
+        "Create gmailOAuthConfig with client ID, secret, redirect URI",
+        "Implement scope validation utility",
+        "Add Google OAuth URLs for auth and token endpoints"
+      ],
+      "acceptanceCriteria": [
+        "OAuth client ID/secret configured via environment variables",
+        "All required scopes defined and documented",
+        "Configuration exports correctly typed"
+      ],
+      "testStrategy": "Unit tests for configuration validation, integration test for OAuth URL generation",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 2,
+      "title": "Create Outlook OAuth Configuration",
+      "description": "Configure Microsoft OAuth 2.0 client with Azure AD app registration",
+      "phase": "1.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/auth/src/providers/outlook.ts"],
+      "subtasks": [
+        "Define OUTLOOK_SCOPES constant with Mail.Read, User.Read, offline_access",
+        "Create outlookOAuthConfig with Azure AD endpoints",
+        "Handle multi-tenant vs single-tenant configuration",
+        "Add Microsoft Graph API base URL constant"
+      ],
+      "acceptanceCriteria": [
+        "Azure AD app configured via environment variables",
+        "Scopes properly formatted for Microsoft Graph",
+        "Support for both personal and work accounts"
+      ],
+      "testStrategy": "Unit tests for configuration, mock Azure AD responses",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 3,
+      "title": "Set Up OAuth Environment Variables",
+      "description": "Configure and validate OAuth credentials from environment",
+      "phase": "1.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 2],
+      "files": ["packages/env/src/index.ts", ".env.example"],
+      "subtasks": [
+        "Add GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET to env schema",
+        "Add OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET, OUTLOOK_TENANT_ID",
+        "Add TOKEN_ENCRYPTION_KEY for secure token storage",
+        "Implement validation with helpful error messages for missing credentials",
+        "Update .env.example with placeholder values and documentation"
+      ],
+      "acceptanceCriteria": [
+        "All OAuth variables defined in env package",
+        "Validation fails gracefully with clear error messages",
+        ".env.example documents all required variables"
+      ],
+      "testStrategy": "Unit tests for validation, startup tests for missing credentials",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 4,
+      "title": "Implement List Accounts Procedure",
+      "description": "Create tRPC procedure to list user's connected email accounts",
+      "phase": "1.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3],
+      "files": ["packages/api/src/routers/email-accounts.ts"],
+      "subtasks": [
+        "Create emailAccountsRouter with authed procedure",
+        "Implement list query with user filtering",
+        "Add computed fields: status, lastSyncAt, messageCount",
+        "Include provider metadata (provider, email, displayName)",
+        "Add pagination support with cursor-based pagination"
+      ],
+      "acceptanceCriteria": [
+        "Returns all accounts for authenticated user",
+        "Includes sync status and message count",
+        "Supports pagination for users with many accounts"
+      ],
+      "testStrategy": "Unit tests for query, integration tests with test database",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 5,
+      "title": "Implement Connect Account Procedure",
+      "description": "Create procedure to initiate OAuth flow and generate authorization URL",
+      "phase": "1.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [4],
+      "files": [
+        "packages/api/src/routers/email-accounts.ts",
+        "packages/db/src/schema/email.ts"
+      ],
+      "subtasks": [
+        "Create connect mutation accepting provider type",
+        "Generate cryptographically secure state token",
+        "Store pending auth state with expiration (Redis or DB)",
+        "Construct OAuth URL with required parameters",
+        "Prevent duplicate account connections"
+      ],
+      "acceptanceCriteria": [
+        "Generates valid OAuth URL for Gmail and Outlook",
+        "State token prevents CSRF attacks",
+        "Rejects if email already connected"
+      ],
+      "testStrategy": "Unit tests for URL generation, integration tests for state management",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 6,
+      "title": "Implement Disconnect Account Procedure",
+      "description": "Create procedure to disconnect and revoke OAuth tokens",
+      "phase": "1.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [4],
+      "files": ["packages/api/src/routers/email-accounts.ts"],
+      "subtasks": [
+        "Create disconnect mutation accepting accountId",
+        "Verify account ownership before disconnection",
+        "Revoke tokens at provider (Gmail: revoke endpoint, Outlook: Azure AD)",
+        "Mark account as inactive in database",
+        "Preserve historical data for audit trail"
+      ],
+      "acceptanceCriteria": [
+        "Tokens revoked at provider",
+        "Account marked inactive, not deleted",
+        "Historical threads preserved"
+      ],
+      "testStrategy": "Mock provider revoke endpoints, verify database state",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 7,
+      "title": "Implement Update Settings Procedure",
+      "description": "Create procedure to update per-account sync preferences",
+      "phase": "1.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [4],
+      "files": ["packages/api/src/routers/email-accounts.ts"],
+      "subtasks": [
+        "Create updateSettings mutation with Zod validation",
+        "Support syncIntervalMinutes (5, 15, 30, 60)",
+        "Support label/folder filters (includedLabels, excludedLabels)",
+        "Support syncFromDate for historical limit",
+        "Validate settings against provider capabilities"
+      ],
+      "acceptanceCriteria": [
+        "Settings validated before storage",
+        "Invalid settings return clear error messages",
+        "Settings applied to next sync cycle"
+      ],
+      "testStrategy": "Unit tests for validation, integration tests for persistence",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 8,
+      "title": "Implement Set Primary Account Procedure",
+      "description": "Create procedure to designate primary account for default operations",
+      "phase": "1.1",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [4],
+      "files": ["packages/api/src/routers/email-accounts.ts"],
+      "subtasks": [
+        "Create setPrimary mutation accepting accountId",
+        "Clear previous primary flag atomically",
+        "Set new primary flag",
+        "Verify at least one account exists before setting"
+      ],
+      "acceptanceCriteria": [
+        "Only one account marked primary at a time",
+        "Atomic update prevents race conditions",
+        "Cannot set primary on inactive account"
+      ],
+      "testStrategy": "Concurrent request tests for atomicity",
+      "estimatedLOC": 50
+    },
+    {
+      "id": 9,
+      "title": "Define EmailClient Interface",
+      "description": "Create unified TypeScript interface for email provider operations",
+      "phase": "1.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["apps/server/src/lib/email-client/types.ts"],
+      "subtasks": [
+        "Define EmailClient interface with core operations",
+        "Define ThreadListResponse, ThreadResponse, MessageResponse types",
+        "Define MessagePart for multipart message handling",
+        "Define AttachmentResponse for attachment metadata",
+        "Define AccountInfo for provider profile data",
+        "Add needsRefresh() and refreshToken() for token management"
+      ],
+      "acceptanceCriteria": [
+        "Interface covers all required email operations",
+        "Types are provider-agnostic",
+        "Pagination and filtering supported in types"
+      ],
+      "testStrategy": "Type-level tests using tsd or similar",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 10,
+      "title": "Implement Gmail Email Client",
+      "description": "Create Gmail-specific implementation of EmailClient interface",
+      "phase": "1.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [9, 1],
+      "files": ["apps/server/src/lib/email-client/gmail.ts"],
+      "subtasks": [
+        "Implement GmailEmailClient class extending EmailClient",
+        "Implement listThreads using Gmail threads.list API",
+        "Implement getThread using Gmail threads.get API",
+        "Implement getMessage using Gmail messages.get API",
+        "Implement getAttachment using Gmail attachments.get API",
+        "Implement token refresh using googleapis library",
+        "Handle Gmail-specific pagination (pageToken, nextPageToken)",
+        "Parse Gmail message parts recursively for body extraction"
+      ],
+      "acceptanceCriteria": [
+        "All EmailClient methods implemented",
+        "Automatic token refresh before expiration",
+        "Gmail-specific data normalized to interface types"
+      ],
+      "testStrategy": "Mock Google APIs, test pagination, test message parsing",
+      "estimatedLOC": 300
+    },
+    {
+      "id": 11,
+      "title": "Implement Outlook Email Client",
+      "description": "Create Outlook-specific implementation of EmailClient interface",
+      "phase": "1.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [9, 2],
+      "files": ["apps/server/src/lib/email-client/outlook.ts"],
+      "subtasks": [
+        "Implement OutlookEmailClient class extending EmailClient",
+        "Implement listThreads using Graph API /messages with conversationId grouping",
+        "Implement getThread by fetching all messages in conversation",
+        "Implement getMessage using Graph API /messages/{id}",
+        "Implement getAttachment using Graph API attachments endpoint",
+        "Implement token refresh using @azure/msal-node",
+        "Handle Outlook pagination ($top, $skip, @odata.nextLink)",
+        "Normalize Outlook message format to interface types"
+      ],
+      "acceptanceCriteria": [
+        "All EmailClient methods implemented",
+        "Automatic token refresh via MSAL",
+        "Conversation grouping matches thread model"
+      ],
+      "testStrategy": "Mock Microsoft Graph API, test pagination, test message parsing",
+      "estimatedLOC": 320
+    },
+    {
+      "id": 12,
+      "title": "Implement Email Client Factory",
+      "description": "Create factory function to instantiate correct client based on provider",
+      "phase": "1.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [10, 11],
+      "files": ["apps/server/src/lib/email-client/index.ts"],
+      "subtasks": [
+        "Create createEmailClient(account) factory function",
+        "Detect provider from account record",
+        "Decrypt stored tokens before creating client",
+        "Cache client instances to avoid recreating",
+        "Handle unsupported provider gracefully"
+      ],
+      "acceptanceCriteria": [
+        "Returns correct client type for Gmail/Outlook",
+        "Tokens decrypted automatically",
+        "Client reusable within request lifecycle"
+      ],
+      "testStrategy": "Unit tests for factory logic, mock encryption",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 13,
+      "title": "Implement Error Normalization",
+      "description": "Create unified error handling across providers",
+      "phase": "1.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [10, 11],
+      "files": ["apps/server/src/lib/email-client/errors.ts"],
+      "subtasks": [
+        "Define EmailClientError class hierarchy",
+        "Create AuthenticationError for token issues",
+        "Create RateLimitError with retry-after",
+        "Create NotFoundError for missing resources",
+        "Create ProviderError for unknown provider errors",
+        "Map Gmail error codes to normalized errors",
+        "Map Microsoft Graph error codes to normalized errors"
+      ],
+      "acceptanceCriteria": [
+        "All provider errors mapped to standard types",
+        "Errors include retry eligibility",
+        "User-friendly messages generated"
+      ],
+      "testStrategy": "Unit tests for error mapping from each provider",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 14,
+      "title": "Create Email Accounts Page Layout",
+      "description": "Build responsive page layout for account management",
+      "phase": "1.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [4],
+      "files": ["apps/web/src/routes/dashboard/email-accounts.tsx"],
+      "subtasks": [
+        "Create page route component with TanStack Router",
+        "Implement responsive grid layout for account cards",
+        "Add page header with 'Connect Account' button",
+        "Implement loading skeleton for accounts list",
+        "Handle empty state with onboarding prompt"
+      ],
+      "acceptanceCriteria": [
+        "Responsive on mobile, tablet, desktop",
+        "Loading state shows skeletons",
+        "Empty state guides user to connect"
+      ],
+      "testStrategy": "Visual regression tests, responsive testing",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 15,
+      "title": "Implement Account Card Component",
+      "description": "Create card component showing account status and actions",
+      "phase": "1.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [14],
+      "files": ["apps/web/src/components/email/account-card.tsx"],
+      "subtasks": [
+        "Display provider icon (Gmail/Outlook) with email address",
+        "Show connection status with appropriate color indicator",
+        "Display last sync time with relative formatting",
+        "Show message count and sync progress if syncing",
+        "Add dropdown menu for settings, disconnect, set primary",
+        "Implement status-specific styling (active, expired, syncing)"
+      ],
+      "acceptanceCriteria": [
+        "All account states visually distinct",
+        "Actions accessible via dropdown",
+        "Sync progress visible during active sync"
+      ],
+      "testStrategy": "Component tests for all states, visual regression",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 16,
+      "title": "Implement Connect Account Flow",
+      "description": "Build UI flow for connecting new email accounts",
+      "phase": "1.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 14],
+      "files": ["apps/web/src/components/email/connect-account-dialog.tsx"],
+      "subtasks": [
+        "Create dialog/sheet component for provider selection",
+        "Display Gmail and Outlook buttons with provider branding",
+        "Show scope explanation before OAuth redirect",
+        "Handle OAuth redirect and return",
+        "Display success/error toast on completion",
+        "Handle popup blocker scenarios"
+      ],
+      "acceptanceCriteria": [
+        "User understands what access is requested",
+        "OAuth flow completes without page refresh",
+        "Success/error clearly communicated"
+      ],
+      "testStrategy": "E2E tests with mock OAuth, error scenario testing",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 17,
+      "title": "Implement Disconnect Confirmation",
+      "description": "Create confirmation dialog for account disconnection",
+      "phase": "1.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6, 15],
+      "files": ["apps/web/src/components/email/disconnect-dialog.tsx"],
+      "subtasks": [
+        "Create AlertDialog with warning message",
+        "Explain that historical data will be preserved",
+        "Require explicit confirmation (type email or checkbox)",
+        "Show loading state during disconnection",
+        "Display success message and update account list"
+      ],
+      "acceptanceCriteria": [
+        "User cannot accidentally disconnect",
+        "Clear explanation of consequences",
+        "Immediate feedback on completion"
+      ],
+      "testStrategy": "Component tests for confirmation flow",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 18,
+      "title": "Implement Settings Panel",
+      "description": "Create inline settings editor for account preferences",
+      "phase": "1.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [7, 15],
+      "files": ["apps/web/src/components/email/account-settings-panel.tsx"],
+      "subtasks": [
+        "Create Sheet component for settings panel",
+        "Add sync interval select (5, 15, 30, 60 minutes)",
+        "Add label/folder multi-select for sync filtering",
+        "Add date picker for sync history limit",
+        "Implement optimistic updates with rollback",
+        "Validate inputs client-side before submission"
+      ],
+      "acceptanceCriteria": [
+        "Settings save without page refresh",
+        "Invalid inputs prevented with clear errors",
+        "Changes reflect immediately in UI"
+      ],
+      "testStrategy": "Component tests for validation, integration tests for API",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 19,
+      "title": "Create Gmail Callback Route",
+      "description": "Handle OAuth callback from Google after user authorization",
+      "phase": "1.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 10],
+      "files": ["apps/server/src/routes/oauth/gmail.ts"],
+      "subtasks": [
+        "Create Hono route handler for /oauth/gmail/callback",
+        "Validate state parameter against stored pending auth",
+        "Exchange authorization code for tokens using googleapis",
+        "Fetch user email address using userinfo endpoint",
+        "Encrypt tokens and create emailAccount record",
+        "Trigger initial backfill job (PRD-02)",
+        "Redirect to success URL with account ID"
+      ],
+      "acceptanceCriteria": [
+        "State validation prevents CSRF",
+        "Tokens encrypted before storage",
+        "Account created and backfill started"
+      ],
+      "testStrategy": "Integration tests with mock Google OAuth, state validation tests",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 20,
+      "title": "Create Outlook Callback Route",
+      "description": "Handle OAuth callback from Microsoft after user authorization",
+      "phase": "1.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 11],
+      "files": ["apps/server/src/routes/oauth/outlook.ts"],
+      "subtasks": [
+        "Create Hono route handler for /oauth/outlook/callback",
+        "Validate state parameter against stored pending auth",
+        "Exchange authorization code using MSAL",
+        "Fetch user profile using Graph API /me",
+        "Encrypt tokens and create emailAccount record",
+        "Trigger initial backfill job (PRD-02)",
+        "Redirect to success URL with account ID"
+      ],
+      "acceptanceCriteria": [
+        "State validation prevents CSRF",
+        "Tokens encrypted before storage",
+        "Works for personal and work accounts"
+      ],
+      "testStrategy": "Integration tests with mock Azure AD, multi-tenant testing",
+      "estimatedLOC": 160
+    },
+    {
+      "id": 21,
+      "title": "Implement Token Encryption",
+      "description": "Create encryption utilities for OAuth token storage",
+      "phase": "1.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3],
+      "files": ["apps/server/src/lib/crypto/tokens.ts"],
+      "subtasks": [
+        "Implement AES-256-GCM encryption for tokens",
+        "Create encryptToken(plaintext, key) function",
+        "Create decryptToken(ciphertext, key) function",
+        "Include IV in ciphertext output for uniqueness",
+        "Support key rotation without re-encryption",
+        "Add timestamp for future key version tracking"
+      ],
+      "acceptanceCriteria": [
+        "Encryption uses AES-256-GCM",
+        "Each encryption produces unique output (random IV)",
+        "Decryption fails gracefully for invalid data"
+      ],
+      "testStrategy": "Unit tests for encrypt/decrypt roundtrip, tampering detection",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 22,
+      "title": "Implement Automatic Token Refresh Job",
+      "description": "Create Trigger.dev task to refresh expiring tokens",
+      "phase": "1.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [19, 20, 21],
+      "files": ["apps/server/src/trigger/token-refresh.ts"],
+      "subtasks": [
+        "Create scheduled Trigger.dev task (runs every 5 minutes)",
+        "Query accounts with tokens expiring in next 10 minutes",
+        "Batch refresh tokens using provider clients",
+        "Update encrypted tokens in database",
+        "Handle refresh failures (mark account as needs_reconnection)",
+        "Alert on repeated refresh failures",
+        "Log all refresh attempts for audit"
+      ],
+      "acceptanceCriteria": [
+        "Tokens refreshed before expiration",
+        "Failed refreshes marked appropriately",
+        "No user action required for normal operation"
+      ],
+      "testStrategy": "Integration tests with mock providers, failure scenario testing",
+      "estimatedLOC": 120
+    }
+  ],
+  "criticalPath": [1, 3, 4, 5, 9, 10, 12, 19, 21, 22],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 2900
+  }
+}

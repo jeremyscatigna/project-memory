@@ -1,0 +1,408 @@
+{
+  "prdId": "PRD-11",
+  "title": "Dashboards",
+  "description": "Commitment ledger, decision log, and relationship views",
+  "totalTasks": 15,
+  "phases": [
+    {
+      "id": "11.0",
+      "name": "Commitment Ledger",
+      "description": "Track all commitments in one place"
+    },
+    {
+      "id": "11.1",
+      "name": "Decision Log",
+      "description": "Searchable decision history"
+    },
+    {
+      "id": "11.2",
+      "name": "Relationship Dashboard",
+      "description": "Manage and view relationships"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Owed By Me View",
+      "description": "Show user's outstanding commitments to others",
+      "phase": "11.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/routes/email/commitments.tsx",
+        "apps/web/src/components/dashboards/commitment-list.tsx"
+      ],
+      "subtasks": [
+        "Create commitments page route",
+        "Create CommitmentList component",
+        "Filter commitments where user is debtor",
+        "Group by status: overdue, due this week, upcoming",
+        "Show urgency badges with color coding",
+        "Display creditor and due date prominently"
+      ],
+      "acceptanceCriteria": [
+        "All owed commitments visible",
+        "Overdue items visually prominent",
+        "Grouped by urgency"
+      ],
+      "testStrategy": "Test with various commitment states",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 2,
+      "title": "Implement Owed To Me View",
+      "description": "Show commitments others owe to user",
+      "phase": "11.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["apps/web/src/components/dashboards/commitment-list.tsx"],
+      "subtasks": [
+        "Add tab for 'Owed to Me' view",
+        "Filter commitments where user is creditor",
+        "Group by overdue status",
+        "Show debtor prominently",
+        "Add 'Send Reminder' quick action"
+      ],
+      "acceptanceCriteria": [
+        "All owed-to-me commitments visible",
+        "Reminder action available",
+        "Tab switching smooth"
+      ],
+      "testStrategy": "Test filtering logic",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 3,
+      "title": "Implement Commitment Timeline",
+      "description": "Show commitments on calendar view",
+      "phase": "11.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1],
+      "files": ["apps/web/src/components/dashboards/commitment-timeline.tsx"],
+      "subtasks": [
+        "Create CommitmentTimeline component",
+        "Display commitments on date axis",
+        "Color code by type (owed by me vs to me)",
+        "Show commitment count per day",
+        "Navigate to commitment detail on click"
+      ],
+      "acceptanceCriteria": [
+        "Timeline visualizes due dates",
+        "Color coding clear",
+        "Navigation works"
+      ],
+      "testStrategy": "Visual testing with various date distributions",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 4,
+      "title": "Implement Commitment Quick Actions",
+      "description": "Manage commitments directly from dashboard",
+      "phase": "11.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["apps/web/src/components/dashboards/commitment-card.tsx"],
+      "subtasks": [
+        "Create CommitmentCard component",
+        "Add 'Mark Complete' action",
+        "Add 'Snooze' action with date picker",
+        "Add 'Dismiss' action for incorrect extractions",
+        "Add 'Generate Follow-up' action",
+        "Show confirmation for actions"
+      ],
+      "acceptanceCriteria": [
+        "All actions work from card",
+        "State updates immediately",
+        "Follow-up drafts generated"
+      ],
+      "testStrategy": "Test each action",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 5,
+      "title": "Implement Digest Configuration",
+      "description": "Configure daily/weekly commitment digests",
+      "phase": "11.0",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [1],
+      "files": ["apps/web/src/components/dashboards/digest-settings.tsx"],
+      "subtasks": [
+        "Create DigestSettings component",
+        "Allow frequency selection (daily, weekly, none)",
+        "Allow time selection for daily digest",
+        "Configure included categories",
+        "Preview digest content"
+      ],
+      "acceptanceCriteria": [
+        "Settings saved correctly",
+        "Preview shows actual content",
+        "Frequency changeable"
+      ],
+      "testStrategy": "Test settings persistence",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 6,
+      "title": "Implement Decision Timeline",
+      "description": "Chronological view of all decisions",
+      "phase": "11.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/routes/email/decisions.tsx",
+        "apps/web/src/components/dashboards/decision-timeline.tsx"
+      ],
+      "subtasks": [
+        "Create decisions page route",
+        "Create DecisionTimeline component",
+        "Group decisions by month/year",
+        "Show decision summary with date and participants",
+        "Display supersession badges for changed decisions",
+        "Link to source thread"
+      ],
+      "acceptanceCriteria": [
+        "All decisions visible chronologically",
+        "Supersessions marked",
+        "Navigation to source works"
+      ],
+      "testStrategy": "Test with decisions spanning months",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 7,
+      "title": "Implement Decision Search",
+      "description": "Search decisions by topic/keyword",
+      "phase": "11.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [6],
+      "files": ["apps/web/src/components/dashboards/decision-search.tsx"],
+      "subtasks": [
+        "Create DecisionSearch component",
+        "Implement search input with debounce",
+        "Use semantic + keyword hybrid search",
+        "Display search results with relevance",
+        "Add filters: date range, topic, people"
+      ],
+      "acceptanceCriteria": [
+        "Search finds relevant decisions",
+        "Filters work correctly",
+        "Results ranked by relevance"
+      ],
+      "testStrategy": "Test search quality",
+      "estimatedLOC": 130
+    },
+    {
+      "id": 8,
+      "title": "Implement Decision Detail View",
+      "description": "Full decision context with rationale",
+      "phase": "11.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [6],
+      "files": ["apps/web/src/components/dashboards/decision-card.tsx"],
+      "subtasks": [
+        "Create DecisionCard component (expanded view)",
+        "Display decision statement prominently",
+        "Show rationale with evidence links",
+        "Display alternatives considered",
+        "Show decision makers/approvers",
+        "Link to source thread"
+      ],
+      "acceptanceCriteria": [
+        "Full context available",
+        "Evidence links work",
+        "Clear presentation"
+      ],
+      "testStrategy": "Test with decisions of varying completeness",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 9,
+      "title": "Implement Supersession View",
+      "description": "Show decision evolution over time",
+      "phase": "11.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [8],
+      "files": ["apps/web/src/components/dashboards/decision-chain.tsx"],
+      "subtasks": [
+        "Create DecisionChain component",
+        "Display supersession chain as timeline",
+        "Show original → intermediate → current decisions",
+        "Highlight changes between versions",
+        "Allow navigating between versions"
+      ],
+      "acceptanceCriteria": [
+        "Evolution clearly visible",
+        "Changes highlighted",
+        "Navigation intuitive"
+      ],
+      "testStrategy": "Test with multi-step decision evolution",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 10,
+      "title": "Implement Decision Export",
+      "description": "Export decisions for documentation",
+      "phase": "11.1",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [6],
+      "files": ["apps/web/src/components/dashboards/decision-export.tsx"],
+      "subtasks": [
+        "Create DecisionExport component",
+        "Allow selecting decisions to export",
+        "Generate Markdown document",
+        "Generate PDF document (optional)",
+        "Include rationale and evidence in export"
+      ],
+      "acceptanceCriteria": [
+        "Export contains selected decisions",
+        "Format is professional",
+        "Evidence included"
+      ],
+      "testStrategy": "Test export formats",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 11,
+      "title": "Implement Contact List View",
+      "description": "List all contacts with metrics",
+      "phase": "11.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/routes/email/contacts.tsx",
+        "apps/web/src/components/dashboards/contact-list.tsx"
+      ],
+      "subtasks": [
+        "Create contacts page route",
+        "Create ContactList component",
+        "Display contact cards with avatar and name",
+        "Show importance and health scores",
+        "Show last interaction date",
+        "Support sorting by various metrics"
+      ],
+      "acceptanceCriteria": [
+        "All contacts listed",
+        "Scores visible",
+        "Sorting works"
+      ],
+      "testStrategy": "Test with large contact list",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 12,
+      "title": "Implement VIP View",
+      "description": "Show high-priority contacts",
+      "phase": "11.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [11],
+      "files": ["apps/web/src/components/dashboards/contact-list.tsx"],
+      "subtasks": [
+        "Add VIP filter tab",
+        "Show VIP badge on contact cards",
+        "Display open loops count prominently",
+        "Add 'Prepare Meeting' quick action",
+        "Allow marking/unmarking as VIP"
+      ],
+      "acceptanceCriteria": [
+        "VIPs filtered correctly",
+        "Open loops visible",
+        "VIP status editable"
+      ],
+      "testStrategy": "Test VIP detection and manual override",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 13,
+      "title": "Implement At-Risk View",
+      "description": "Show relationships needing attention",
+      "phase": "11.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [11],
+      "files": ["apps/web/src/components/dashboards/contact-list.tsx"],
+      "subtasks": [
+        "Add 'At Risk' filter tab",
+        "Show risk reason on contact cards",
+        "Display days since last contact",
+        "Add 'Reconnect' action suggestion",
+        "Sort by risk severity"
+      ],
+      "acceptanceCriteria": [
+        "At-risk contacts identified",
+        "Risk reason clear",
+        "Reconnect action available"
+      ],
+      "testStrategy": "Test with declining relationships",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 14,
+      "title": "Implement Contact Detail View",
+      "description": "Full contact profile and history",
+      "phase": "11.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [11],
+      "files": ["apps/web/src/components/dashboards/contact-card.tsx"],
+      "subtasks": [
+        "Create ContactCard expanded view",
+        "Display full profile (title, company, contact info)",
+        "Show communication analytics (frequency, responsiveness)",
+        "Display recent interaction history",
+        "Show open commitments with this contact",
+        "List topics frequently discussed"
+      ],
+      "acceptanceCriteria": [
+        "Full profile visible",
+        "Analytics presented clearly",
+        "History accessible"
+      ],
+      "testStrategy": "Test with contacts of varying history",
+      "estimatedLOC": 180
+    },
+    {
+      "id": 15,
+      "title": "Implement Meeting Prep",
+      "description": "Generate meeting briefs for contacts",
+      "phase": "11.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [14],
+      "files": ["apps/web/src/components/dashboards/meeting-prep.tsx"],
+      "subtasks": [
+        "Create MeetingPrep component",
+        "Add 'Prepare Meeting' button on contact card",
+        "Show loading state during brief generation",
+        "Display generated brief with sections",
+        "Allow exporting/printing brief",
+        "Save brief for later reference"
+      ],
+      "acceptanceCriteria": [
+        "Brief generated on demand",
+        "Content useful for meeting",
+        "Export available"
+      ],
+      "testStrategy": "Test brief quality and content",
+      "estimatedLOC": 140
+    }
+  ],
+  "criticalPath": [1, 4, 6, 7, 8, 11, 14],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 2080
+  }
+}

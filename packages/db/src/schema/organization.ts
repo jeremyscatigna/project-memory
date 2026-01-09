@@ -129,6 +129,8 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   members: many(member),
   teams: many(team),
   invitations: many(invitation),
+  // Email accounts connected to this organization (from email.ts)
+  // Note: The actual relation is defined in email.ts to avoid circular imports
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({

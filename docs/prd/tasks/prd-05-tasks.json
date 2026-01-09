@@ -1,0 +1,427 @@
+{
+  "prdId": "PRD-05",
+  "title": "Relationship Intelligence Agent",
+  "description": "Agent 4: Contact dossiers, communication analytics, and relationship scoring",
+  "totalTasks": 16,
+  "phases": [
+    {
+      "id": "5.0",
+      "name": "Contact Building",
+      "description": "Create and enrich contact profiles"
+    },
+    {
+      "id": "5.1",
+      "name": "Communication Analytics",
+      "description": "Calculate interaction metrics"
+    },
+    {
+      "id": "5.2",
+      "name": "Relationship Scoring",
+      "description": "Score and flag relationships"
+    },
+    {
+      "id": "5.3",
+      "name": "Context Generation",
+      "description": "Create actionable relationship context"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Identity Resolution",
+      "description": "Merge multiple email addresses into unified contact records",
+      "phase": "5.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/analyzers/identity.ts"],
+      "subtasks": [
+        "Create resolveIdentity(email, displayName) function",
+        "Match by exact email address first",
+        "Match by domain + name similarity for aliases",
+        "Detect common alias patterns (john@ vs j.smith@)",
+        "Create merge suggestion for manual review",
+        "Handle split for incorrectly merged contacts"
+      ],
+      "acceptanceCriteria": [
+        "Same person multiple emails → single contact",
+        "Different people similar names → separate contacts",
+        "Merge suggestions reviewable by user"
+      ],
+      "testStrategy": "Test various alias patterns, similarity edge cases",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 2,
+      "title": "Implement Profile Enrichment",
+      "description": "Extract profile information from email signatures and content",
+      "phase": "5.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/analyzers/identity.ts"],
+      "subtasks": [
+        "Create enrichProfile(contact, messages) function",
+        "Parse email signatures for title and company",
+        "Extract phone numbers from signatures",
+        "Detect LinkedIn/Twitter URLs",
+        "Infer role from email context if not explicit",
+        "Update contact record with enriched data"
+      ],
+      "acceptanceCriteria": [
+        "Title extracted from signature",
+        "Company identified",
+        "Social profiles linked"
+      ],
+      "testStrategy": "Test with various signature formats",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 3,
+      "title": "Implement Avatar Resolution",
+      "description": "Find and store contact photos",
+      "phase": "5.0",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [1],
+      "files": ["packages/ai/src/analyzers/identity.ts"],
+      "subtasks": [
+        "Create resolveAvatar(email) function",
+        "Check Gravatar by email hash",
+        "Check Google profile if available",
+        "Generate initials fallback",
+        "Cache avatar URL on contact record"
+      ],
+      "acceptanceCriteria": [
+        "Avatar found when available",
+        "Initials fallback always works",
+        "Cache prevents repeated lookups"
+      ],
+      "testStrategy": "Test with known Gravatar accounts",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 4,
+      "title": "Implement Company Association",
+      "description": "Link contacts to company records",
+      "phase": "5.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [2],
+      "files": ["packages/ai/src/analyzers/identity.ts"],
+      "subtasks": [
+        "Create associateCompany(contact) function",
+        "Extract company from email domain",
+        "Cross-reference with signature company",
+        "Create company record if not exists",
+        "Link contact to company",
+        "Handle personal email domains (gmail, outlook)"
+      ],
+      "acceptanceCriteria": [
+        "Work emails linked to company",
+        "Personal emails handled gracefully",
+        "Company records deduplicated"
+      ],
+      "testStrategy": "Test work vs personal email handling",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 5,
+      "title": "Implement Frequency Calculation",
+      "description": "Calculate communication frequency metrics",
+      "phase": "5.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/analyzers/communication.ts"],
+      "subtasks": [
+        "Create calculateFrequency(contact, threads) function",
+        "Count threads per time period (week, month, quarter)",
+        "Count messages exchanged per period",
+        "Calculate frequency trend (increasing/decreasing)",
+        "Store metrics on contact record"
+      ],
+      "acceptanceCriteria": [
+        "Threads/month calculated",
+        "Messages/month calculated",
+        "Trend direction determined"
+      ],
+      "testStrategy": "Test with various communication patterns",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 6,
+      "title": "Implement Responsiveness Metrics",
+      "description": "Measure response time patterns for contacts",
+      "phase": "5.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/analyzers/communication.ts"],
+      "subtasks": [
+        "Create calculateResponsiveness(contact, threads) function",
+        "Calculate average response time (their replies to me)",
+        "Calculate response rate (% of my messages they reply to)",
+        "Calculate my response time to them",
+        "Exclude weekends/holidays if detectable"
+      ],
+      "acceptanceCriteria": [
+        "Average response time calculated",
+        "Response rate percentage",
+        "Bi-directional metrics"
+      ],
+      "testStrategy": "Test with various response patterns",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 7,
+      "title": "Implement Direction Analysis",
+      "description": "Track who initiates conversations",
+      "phase": "5.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1],
+      "files": ["packages/ai/src/analyzers/communication.ts"],
+      "subtasks": [
+        "Create analyzeDirection(contact, threads) function",
+        "Count threads initiated by me vs them",
+        "Calculate initiation ratio",
+        "Track direction trend over time",
+        "Flag one-sided communication patterns"
+      ],
+      "acceptanceCriteria": [
+        "Initiation ratio calculated",
+        "Trend tracked over time",
+        "One-sided patterns flagged"
+      ],
+      "testStrategy": "Test various initiation patterns",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 8,
+      "title": "Implement Topic Association",
+      "description": "Identify topics typically discussed with contact",
+      "phase": "5.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1],
+      "files": ["packages/ai/src/analyzers/communication.ts"],
+      "subtasks": [
+        "Create getTopicAssociation(contact, threads) function",
+        "Aggregate topic tags from shared threads",
+        "Calculate topic frequency distribution",
+        "Identify primary topics for relationship",
+        "Track topic evolution over time"
+      ],
+      "acceptanceCriteria": [
+        "Top topics identified",
+        "Frequency distribution calculated",
+        "Evolution trackable"
+      ],
+      "testStrategy": "Test with topically diverse relationships",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 9,
+      "title": "Implement Importance Scoring",
+      "description": "Rank contact importance based on multiple factors",
+      "phase": "5.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 6, 7],
+      "files": ["packages/ai/src/analyzers/scoring.ts"],
+      "subtasks": [
+        "Create calculateImportance(contact, analytics) function",
+        "Score frequency component (0.3 weight)",
+        "Score responsiveness component (0.2 weight)",
+        "Score thread count component (0.2 weight)",
+        "Detect seniority signals (0.15 weight)",
+        "Consider deal/project involvement (0.15 weight)",
+        "Return 0-100 importance score"
+      ],
+      "acceptanceCriteria": [
+        "Score reflects actual importance",
+        "Weights tunable",
+        "Score explains contributing factors"
+      ],
+      "testStrategy": "Test with known important vs casual contacts",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 10,
+      "title": "Implement Health Scoring",
+      "description": "Assess relationship trajectory and health",
+      "phase": "5.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 6, 7],
+      "files": ["packages/ai/src/analyzers/scoring.ts"],
+      "subtasks": [
+        "Create calculateHealth(contact, analytics) function",
+        "Compare recent frequency to baseline",
+        "Factor in sentiment trend",
+        "Consider response rate changes",
+        "Return 0-100 health score with trend"
+      ],
+      "acceptanceCriteria": [
+        "Healthy relationships score high",
+        "Declining relationships detected",
+        "Trend direction calculated"
+      ],
+      "testStrategy": "Test with active vs dormant relationships",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 11,
+      "title": "Implement VIP Detection",
+      "description": "Automatically identify VIP contacts",
+      "phase": "5.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [9],
+      "files": ["packages/ai/src/analyzers/scoring.ts"],
+      "subtasks": [
+        "Create detectVIP(contact, importance) function",
+        "Threshold on importance score (> 80)",
+        "Detect executive title patterns",
+        "Check for explicit VIP flags",
+        "Return VIP status with reason"
+      ],
+      "acceptanceCriteria": [
+        "VIPs correctly identified",
+        "Reason provided for status",
+        "Manual override supported"
+      ],
+      "testStrategy": "Test with known VIP patterns",
+      "estimatedLOC": 50
+    },
+    {
+      "id": 12,
+      "title": "Implement Risk Flagging",
+      "description": "Identify relationships at risk of declining",
+      "phase": "5.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [10],
+      "files": ["packages/ai/src/analyzers/scoring.ts"],
+      "subtasks": [
+        "Create detectRisk(contact, health, history) function",
+        "Flag declining health score trend",
+        "Flag extended no-contact period",
+        "Flag dropped response rates",
+        "Return risk level with specific reason"
+      ],
+      "acceptanceCriteria": [
+        "At-risk relationships flagged",
+        "Specific reason provided",
+        "Actionable for user"
+      ],
+      "testStrategy": "Test with declining relationships",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 13,
+      "title": "Implement Open Loops Summary",
+      "description": "Show pending items with a specific contact",
+      "phase": "5.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/relationship.ts"],
+      "subtasks": [
+        "Create getOpenLoops(contact) function",
+        "Query commitments where contact is debtor or creditor",
+        "Query unanswered questions involving contact",
+        "Sort by urgency/due date",
+        "Return summary with links to threads"
+      ],
+      "acceptanceCriteria": [
+        "All open items with contact surfaced",
+        "Urgency-sorted",
+        "Links to source threads"
+      ],
+      "testStrategy": "Test with contacts having various open items",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 14,
+      "title": "Implement Recent History Summary",
+      "description": "Summarize recent interactions with contact",
+      "phase": "5.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/relationship.ts"],
+      "subtasks": [
+        "Create getRecentHistory(contact, limit) function",
+        "Fetch last N meaningful interactions",
+        "Generate brief summary of each",
+        "Include timestamps and thread links",
+        "Filter out trivial interactions"
+      ],
+      "acceptanceCriteria": [
+        "Recent interactions summarized",
+        "Trivial items excluded",
+        "Links to full threads"
+      ],
+      "testStrategy": "Test summarization quality",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 15,
+      "title": "Implement Meeting Brief Generation",
+      "description": "Create pre-meeting context packet",
+      "phase": "5.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [13, 14],
+      "files": ["packages/ai/src/agents/relationship.ts"],
+      "subtasks": [
+        "Create generateMeetingBrief(contact, meetingContext) function",
+        "Include contact profile summary",
+        "Include recent history (last 5 interactions)",
+        "Include all open loops",
+        "Generate suggested talking points",
+        "Format as readable brief document"
+      ],
+      "acceptanceCriteria": [
+        "Brief contains relevant context",
+        "Talking points actionable",
+        "Formatted for quick reading"
+      ],
+      "testStrategy": "Test brief usefulness with real scenarios",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 16,
+      "title": "Implement Response Time Prediction",
+      "description": "Predict when a contact will respond",
+      "phase": "5.3",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [6],
+      "files": ["packages/ai/src/analyzers/communication.ts"],
+      "subtasks": [
+        "Create predictResponseTime(contact, message) function",
+        "Analyze historical response patterns",
+        "Consider day of week and time",
+        "Account for urgency signals in message",
+        "Return predicted time with confidence interval"
+      ],
+      "acceptanceCriteria": [
+        "Prediction within ±2 hours for active contacts",
+        "Confidence reflects data availability",
+        "Handles new contacts gracefully"
+      ],
+      "testStrategy": "Test prediction accuracy on historical data",
+      "estimatedLOC": 90
+    }
+  ],
+  "criticalPath": [1, 2, 5, 6, 9, 10, 13, 14, 15],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 1500
+  }
+}

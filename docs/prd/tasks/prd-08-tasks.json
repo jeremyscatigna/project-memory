@@ -1,0 +1,376 @@
+{
+  "prdId": "PRD-08",
+  "title": "Drafting Agent",
+  "description": "Agent 7: Evidence-grounded reply drafting with citations",
+  "totalTasks": 14,
+  "phases": [
+    {
+      "id": "8.0",
+      "name": "Context Retrieval",
+      "description": "Gather relevant context for drafting"
+    },
+    {
+      "id": "8.1",
+      "name": "Grounded Generation",
+      "description": "Generate evidence-backed drafts"
+    },
+    {
+      "id": "8.2",
+      "name": "Draft Management",
+      "description": "Manage draft lifecycle"
+    },
+    {
+      "id": "8.3",
+      "name": "UI Integration",
+      "description": "Integrate drafting into the UI"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Thread Context Fetching",
+      "description": "Retrieve full thread history with analysis",
+      "phase": "8.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create getThreadContext(threadId) function",
+        "Fetch all messages in thread",
+        "Include thread analysis (claims, intent, sentiment)",
+        "Include open commitments in thread",
+        "Format context for prompt injection"
+      ],
+      "acceptanceCriteria": [
+        "Full thread history available",
+        "Analysis included in context",
+        "Context formatted for LLM"
+      ],
+      "testStrategy": "Test with threads of various lengths",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 2,
+      "title": "Implement Relationship Context Fetching",
+      "description": "Get history with recipient for draft personalization",
+      "phase": "8.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create getRelationshipContext(contactId) function",
+        "Fetch relationship summary from PRD-05",
+        "Include recent interactions (last 5)",
+        "Include communication style notes",
+        "Include any known preferences"
+      ],
+      "acceptanceCriteria": [
+        "Relationship data available",
+        "Recent history included",
+        "Style preferences captured"
+      ],
+      "testStrategy": "Test with well-known and new contacts",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 3,
+      "title": "Implement Relevant History Search",
+      "description": "Find past discussions related to current thread",
+      "phase": "8.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create getRelevantHistory(thread, limit) function",
+        "Use PRD-06 semantic search",
+        "Find related decisions",
+        "Find related commitments",
+        "Rank by relevance and recency"
+      ],
+      "acceptanceCriteria": [
+        "Related discussions found",
+        "Decisions surfaced when relevant",
+        "Most relevant prioritized"
+      ],
+      "testStrategy": "Test with threads on established topics",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 4,
+      "title": "Implement Open Commitments Fetching",
+      "description": "Get pending items with recipient",
+      "phase": "8.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create getOpenCommitments(contactId) function",
+        "Query PRD-04 for commitments involving contact",
+        "Filter to open status only",
+        "Sort by relevance to current thread",
+        "Include due dates and overdue status"
+      ],
+      "acceptanceCriteria": [
+        "Open commitments surfaced",
+        "Relevant to conversation",
+        "Status information included"
+      ],
+      "testStrategy": "Test with contacts having various commitments",
+      "estimatedLOC": 50
+    },
+    {
+      "id": 5,
+      "title": "Implement Reply Drafting with LLM",
+      "description": "Generate draft reply using gathered context",
+      "phase": "8.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 2, 3, 4],
+      "files": ["packages/ai/src/generation/reply.ts"],
+      "subtasks": [
+        "Create generateDraft(thread, context, intent) function",
+        "Construct comprehensive prompt with all context",
+        "Include user's intent/instruction",
+        "Generate draft with appropriate length",
+        "Ensure draft addresses thread content"
+      ],
+      "acceptanceCriteria": [
+        "Draft addresses thread content",
+        "User intent reflected",
+        "Appropriate length and tone"
+      ],
+      "testStrategy": "Test with various intents and thread types",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 6,
+      "title": "Implement Citation Insertion",
+      "description": "Add source citations to draft claims",
+      "phase": "8.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": ["packages/ai/src/generation/citations.ts"],
+      "subtasks": [
+        "Create insertCitations(draft, sources) function",
+        "Identify claims in draft that need citation",
+        "Match claims to source evidence",
+        "Insert citation markers ([1], [2], etc.)",
+        "Generate citation list with links",
+        "Validate all citations link to real sources"
+      ],
+      "acceptanceCriteria": [
+        "Claims have citations",
+        "Citations link to correct sources",
+        "Citation format consistent"
+      ],
+      "testStrategy": "Test citation accuracy, verify no broken links",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 7,
+      "title": "Implement Consistency Checking",
+      "description": "Verify draft doesn't contradict history",
+      "phase": "8.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": ["packages/ai/src/generation/reply.ts"],
+      "subtasks": [
+        "Create checkConsistency(draft, history) function",
+        "Extract claims from draft",
+        "Compare to historical commitments",
+        "Compare to historical statements",
+        "Flag any contradictions found",
+        "Return consistency score and issues"
+      ],
+      "acceptanceCriteria": [
+        "Contradictions detected",
+        "Specific issues identified",
+        "User warned before sending"
+      ],
+      "testStrategy": "Test with drafts that contradict history",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 8,
+      "title": "Implement Tone Matching",
+      "description": "Match user's writing style in drafts",
+      "phase": "8.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["packages/ai/src/generation/tone.ts"],
+      "subtasks": [
+        "Create analyzeTone(userMessages) function",
+        "Extract style characteristics from user's sent emails",
+        "Identify formality level, greeting style, sign-off",
+        "Create style profile for prompt",
+        "Apply style profile to draft generation"
+      ],
+      "acceptanceCriteria": [
+        "Draft sounds like user",
+        "Formality matches history",
+        "Greetings/sign-offs consistent"
+      ],
+      "testStrategy": "Compare draft style to user's sent emails",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 9,
+      "title": "Implement Draft Variations",
+      "description": "Offer multiple draft options to user",
+      "phase": "8.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create generateVariations(thread, context, count) function",
+        "Generate brief version",
+        "Generate detailed version",
+        "Generate formal version (optional)",
+        "Return variations with labels"
+      ],
+      "acceptanceCriteria": [
+        "Multiple distinct options provided",
+        "Variations clearly labeled",
+        "User can choose preferred"
+      ],
+      "testStrategy": "Verify variations are meaningfully different",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 10,
+      "title": "Implement Iterative Refinement",
+      "description": "Refine draft based on user feedback",
+      "phase": "8.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create refineDraft(draft, feedback) function",
+        "Parse user feedback (shorter, more formal, etc.)",
+        "Regenerate with feedback applied",
+        "Preserve good parts of original",
+        "Allow multiple refinement rounds"
+      ],
+      "acceptanceCriteria": [
+        "Feedback applied correctly",
+        "Good parts preserved",
+        "Multiple rounds supported"
+      ],
+      "testStrategy": "Test with various feedback types",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 11,
+      "title": "Implement Follow-up Generation",
+      "description": "Generate follow-up emails for commitments",
+      "phase": "8.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1, 2],
+      "files": ["packages/ai/src/agents/drafting.ts"],
+      "subtasks": [
+        "Create generateFollowup(commitment) function",
+        "Fetch original commitment context",
+        "Consider days overdue",
+        "Adjust tone based on relationship",
+        "Generate polite but clear nudge"
+      ],
+      "acceptanceCriteria": [
+        "Follow-up contextually appropriate",
+        "Tone matches relationship",
+        "Clear ask included"
+      ],
+      "testStrategy": "Test with various overdue periods",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 12,
+      "title": "Create Draft Composer Component",
+      "description": "Build UI component for drafting experience",
+      "phase": "8.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 6],
+      "files": ["apps/web/src/components/email/draft-composer.tsx"],
+      "subtasks": [
+        "Create DraftComposer component",
+        "Display draft text in editable field",
+        "Show citation markers as hoverable elements",
+        "Add 'Generate Draft' button with intent input",
+        "Show loading state during generation",
+        "Display variations for selection"
+      ],
+      "acceptanceCriteria": [
+        "Draft editable inline",
+        "Citations interactive",
+        "Generation feedback visible"
+      ],
+      "testStrategy": "E2E tests for draft flow",
+      "estimatedLOC": 200
+    },
+    {
+      "id": 13,
+      "title": "Implement Citation Display",
+      "description": "Show citations with source preview on hover",
+      "phase": "8.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [12],
+      "files": ["apps/web/src/components/email/citation-link.tsx"],
+      "subtasks": [
+        "Create CitationLink component",
+        "Show citation number as styled badge",
+        "Display source preview on hover",
+        "Link to source thread/message on click",
+        "Handle missing sources gracefully"
+      ],
+      "acceptanceCriteria": [
+        "Citations visually distinct",
+        "Hover shows source preview",
+        "Click navigates to source"
+      ],
+      "testStrategy": "Test hover and click interactions",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 14,
+      "title": "Implement Refinement Flow",
+      "description": "Build UI for iterative draft refinement",
+      "phase": "8.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [10, 12],
+      "files": ["apps/web/src/components/email/draft-composer.tsx"],
+      "subtasks": [
+        "Add refinement button to composer",
+        "Show quick feedback options (shorter, longer, more formal)",
+        "Allow free-form feedback input",
+        "Show diff between versions (optional)",
+        "Track refinement history"
+      ],
+      "acceptanceCriteria": [
+        "Quick feedback one-click",
+        "Custom feedback supported",
+        "History navigable"
+      ],
+      "testStrategy": "Test refinement workflow",
+      "estimatedLOC": 100
+    }
+  ],
+  "criticalPath": [1, 2, 3, 5, 6, 7, 12, 13],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 1280
+  }
+}

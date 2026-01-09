@@ -1,20 +1,14 @@
 import { checkout, polar, portal } from "@polar-sh/better-auth";
 import { db } from "@saas-template/db";
 import * as schema from "@saas-template/db/schema";
-import {
-  InvitationEmail,
-  MagicLinkEmail,
-  sendEmail,
-  TwoFactorOTPEmail,
-} from "@saas-template/email";
+import { InvitationEmail, sendEmail } from "@saas-template/email";
 import { env } from "@saas-template/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { twoFactor } from "better-auth/plugins";
 import { admin } from "better-auth/plugins/admin";
-import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
 import { AuditActions, createAuditLog } from "./lib/audit";
+import { onboardNewUser } from "./lib/onboarding";
 import { isPolarConfigured, polarClient } from "./lib/payments";
 import { ac, roles } from "./permissions";
 
@@ -24,9 +18,10 @@ export const auth = betterAuth({
     schema,
   }),
   trustedOrigins: [env.CORS_ORIGIN],
-  appName: "SaaS Template",
+  appName: "MemoryStack",
+  // MEMORYSTACK: Disable email/password - OAuth only
   emailAndPassword: {
-    enabled: true,
+    enabled: false,
   },
   // Audit logging hooks
   databaseHooks: {
@@ -37,6 +32,9 @@ export const auth = betterAuth({
           email: string;
           name: string | null;
         }) => {
+          // MEMORYSTACK: Create first org and connect email account on signup
+          await onboardNewUser(user);
+
           await createAuditLog({
             userId: user.id,
             action: AuditActions.USER_CREATED,
@@ -164,21 +162,50 @@ export const auth = betterAuth({
       },
     },
   },
-  // Social providers (conditionally enabled based on env vars)
+  // MEMORYSTACK: OAuth-only authentication with Google and Microsoft
+  // These same credentials are used for email access (Gmail/Outlook)
   socialProviders: {
+    // Google (for Gmail users)
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? {
           google: {
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Request full Gmail access during auth for email intelligence + drafting
+            scope: [
+              "openid",
+              "email",
+              "profile",
+              "https://www.googleapis.com/auth/gmail.modify",
+              "https://www.googleapis.com/auth/gmail.send",
+              "https://www.googleapis.com/auth/gmail.compose",
+            ],
+            // Get refresh token for background email sync
+            accessType: "offline",
+            prompt: "consent",
           },
         }
       : {}),
-    ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
+    // Microsoft (for Outlook users)
+    ...((env.MICROSOFT_CLIENT_ID || env.OUTLOOK_CLIENT_ID) &&
+    (env.MICROSOFT_CLIENT_SECRET || env.OUTLOOK_CLIENT_SECRET)
       ? {
-          github: {
-            clientId: env.GITHUB_CLIENT_ID,
-            clientSecret: env.GITHUB_CLIENT_SECRET,
+          microsoft: {
+            clientId: env.MICROSOFT_CLIENT_ID || env.OUTLOOK_CLIENT_ID || "",
+            clientSecret:
+              env.MICROSOFT_CLIENT_SECRET || env.OUTLOOK_CLIENT_SECRET || "",
+            tenantId: env.MICROSOFT_TENANT_ID || env.OUTLOOK_TENANT_ID,
+            // Request full Outlook access during auth for email intelligence + drafting
+            scope: [
+              "openid",
+              "email",
+              "profile",
+              "offline_access",
+              "Mail.ReadWrite",
+              "Mail.Send",
+              "MailboxSettings.Read",
+              "User.Read",
+            ],
           },
         }
       : {}),
@@ -224,34 +251,7 @@ export const auth = betterAuth({
       defaultRole: "user",
       adminRoles: ["admin"],
     }),
-    // Magic link / passwordless auth
-    magicLink({
-      async sendMagicLink({ email, url }) {
-        await sendEmail({
-          to: email,
-          subject: "Sign in to SaaS Template",
-          template: MagicLinkEmail({
-            magicLink: url,
-          }),
-        });
-      },
-    }),
-    // Two-factor authentication
-    twoFactor({
-      issuer: "SaaS Template",
-      otpOptions: {
-        async sendOTP({ user, otp }) {
-          await sendEmail({
-            to: user.email,
-            subject: "Your SaaS Template verification code",
-            template: TwoFactorOTPEmail({
-              otp,
-              userName: user.name ?? undefined,
-            }),
-          });
-        },
-      },
-    }),
+    // MEMORYSTACK: Removed magicLink and twoFactor - OAuth only authentication
     // Polar payments (only if configured)
     ...(isPolarConfigured && polarClient
       ? [

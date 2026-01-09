@@ -8,6 +8,12 @@
     "./schema": {
       "default": "./src/schema/index.ts"
     },
+    "./types": {
+      "default": "./src/types/index.ts"
+    },
+    "./lib/vector-search": {
+      "default": "./src/lib/vector-search.ts"
+    },
     "./*": {
       "default": "./src/*.ts"
     }

@@ -1,0 +1,476 @@
+{
+  "prdId": "PRD-04",
+  "title": "Commitment & Decision Agents",
+  "description": "Agents 2+3: Commitment ledger and decision memory for tracking promises and decisions from email",
+  "totalTasks": 18,
+  "phases": [
+    {
+      "id": "4.0",
+      "name": "Commitment Agent",
+      "description": "Extract and track commitments"
+    },
+    {
+      "id": "4.1",
+      "name": "Decision Agent",
+      "description": "Extract and track decisions"
+    },
+    {
+      "id": "4.2",
+      "name": "Integration & Automation",
+      "description": "Connect to pipeline and create automations"
+    },
+    {
+      "id": "4.3",
+      "name": "API Layer",
+      "description": "Expose functionality via API"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Promise-to-Commitment Conversion",
+      "description": "Convert promise claims from Thread Understanding Agent into commitment records",
+      "phase": "4.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/commitment.ts"],
+      "subtasks": [
+        "Create CommitmentAgent class",
+        "Implement processPromiseClaim(claim) function",
+        "Extract debtor (who committed) from claim context",
+        "Extract creditor (who benefits) from claim context",
+        "Extract deliverable description from claim text",
+        "Create commitment record with evidence link"
+      ],
+      "acceptanceCriteria": [
+        "Promise claims converted to commitments",
+        "Debtor/creditor correctly identified",
+        "Evidence linked to source message"
+      ],
+      "testStrategy": "Test with explicit and implicit promises",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 2,
+      "title": "Implement Request-Acceptance Matching",
+      "description": "Match requests to acceptances to create mutual commitments",
+      "phase": "4.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/agents/commitment.ts"],
+      "subtasks": [
+        "Create matchRequestToAcceptance(request, messages) function",
+        "Identify acceptance signals in subsequent messages",
+        "Handle explicit acceptance ('Yes, I will')",
+        "Handle implicit acceptance (doing without confirming)",
+        "Create commitment when match found"
+      ],
+      "acceptanceCriteria": [
+        "Direct acceptances matched",
+        "Implicit acceptances detected",
+        "Commitments created with both parties"
+      ],
+      "testStrategy": "Test various acceptance patterns",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 3,
+      "title": "Implement Due Date Extraction",
+      "description": "Extract or infer due dates from commitment context",
+      "phase": "4.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/agents/extractors/dates.ts"],
+      "subtasks": [
+        "Create extractDueDate(text, messageDate) function",
+        "Parse explicit dates ('by Friday', 'January 15th')",
+        "Handle relative dates ('next week', 'in 3 days')",
+        "Infer from urgency language ('ASAP' = 24h, 'soon' = 1 week)",
+        "Return date with confidence score",
+        "Handle no date case (null with reasoning)"
+      ],
+      "acceptanceCriteria": [
+        "Explicit dates parsed correctly",
+        "Relative dates computed from message date",
+        "Confidence reflects certainty"
+      ],
+      "testStrategy": "Test date parsing with various formats and languages",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 4,
+      "title": "Implement Party Identification",
+      "description": "Identify debtor and creditor in commitments",
+      "phase": "4.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/agents/extractors/parties.ts"],
+      "subtasks": [
+        "Create identifyParties(claim, thread) function",
+        "Identify debtor from message sender and language",
+        "Identify creditor from recipients and context",
+        "Handle 'we' commitments (group debtor)",
+        "Handle third-party commitments",
+        "Link parties to contact records"
+      ],
+      "acceptanceCriteria": [
+        "Debtor correctly identified",
+        "Creditor correctly identified",
+        "Group commitments handled"
+      ],
+      "testStrategy": "Test various party configurations",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 5,
+      "title": "Implement Commitment Status Tracking",
+      "description": "Track commitment lifecycle from pending to completion",
+      "phase": "4.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/agents/commitment.ts"],
+      "subtasks": [
+        "Implement trackStatus(commitment, newMessages) function",
+        "Detect completion signals ('Done', 'Sent', 'Completed')",
+        "Detect cancellation signals ('Cancelled', 'No longer needed')",
+        "Update status automatically on thread updates",
+        "Preserve status history for audit"
+      ],
+      "acceptanceCriteria": [
+        "Completion detected and status updated",
+        "Cancellation detected",
+        "Status history maintained"
+      ],
+      "testStrategy": "Test completion and cancellation detection",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 6,
+      "title": "Implement Overdue Detection",
+      "description": "Identify past-due commitments and flag them",
+      "phase": "4.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [3, 5],
+      "files": ["packages/ai/src/agents/commitment.ts"],
+      "subtasks": [
+        "Create checkOverdue(commitment, now) function",
+        "Compare due date to current date",
+        "Calculate days overdue",
+        "Escalate based on overdue severity",
+        "Update commitment status to overdue"
+      ],
+      "acceptanceCriteria": [
+        "Overdue commitments flagged",
+        "Days overdue calculated",
+        "Escalation based on severity"
+      ],
+      "testStrategy": "Test with various overdue scenarios",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 7,
+      "title": "Implement Decision Detection",
+      "description": "Extract decision records from decision claims",
+      "phase": "4.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/decision.ts"],
+      "subtasks": [
+        "Create DecisionAgent class",
+        "Implement processDecisionClaim(claim) function",
+        "Extract decision statement from claim",
+        "Identify decision type (approval, choice, policy)",
+        "Create decision record with evidence link"
+      ],
+      "acceptanceCriteria": [
+        "Decision claims converted to records",
+        "Decision statement extracted",
+        "Evidence linked"
+      ],
+      "testStrategy": "Test with various decision types",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 8,
+      "title": "Implement Rationale Extraction",
+      "description": "Capture why decisions were made",
+      "phase": "4.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [7],
+      "files": ["packages/ai/src/agents/decision.ts"],
+      "subtasks": [
+        "Create extractRationale(decision, thread) function",
+        "Search preceding messages for reasoning",
+        "Identify 'because', 'since', 'reason' patterns",
+        "Extract rationale text with evidence links",
+        "Handle implicit rationale"
+      ],
+      "acceptanceCriteria": [
+        "Explicit rationale extracted",
+        "Implicit rationale inferred",
+        "Linked to source messages"
+      ],
+      "testStrategy": "Test with threads containing reasoning",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 9,
+      "title": "Implement Alternatives Recording",
+      "description": "Track what alternatives were considered for decisions",
+      "phase": "4.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [7],
+      "files": ["packages/ai/src/agents/decision.ts"],
+      "subtasks": [
+        "Create extractAlternatives(decision, thread) function",
+        "Identify 'we could also', 'another option' patterns",
+        "Extract alternative descriptions",
+        "Note why alternatives were rejected if mentioned",
+        "Link alternatives to source messages"
+      ],
+      "acceptanceCriteria": [
+        "Alternatives extracted",
+        "Rejection reasons captured",
+        "Evidence linked"
+      ],
+      "testStrategy": "Test with threads discussing options",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 10,
+      "title": "Implement Decision Owner Attribution",
+      "description": "Identify who made or approved the decision",
+      "phase": "4.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [7],
+      "files": ["packages/ai/src/agents/decision.ts"],
+      "subtasks": [
+        "Create identifyOwner(decision, thread) function",
+        "Detect 'I decided', 'I approve' patterns",
+        "Handle group decisions",
+        "Identify approver vs proposer",
+        "Link owners to contact records"
+      ],
+      "acceptanceCriteria": [
+        "Decision maker identified",
+        "Group decisions attributed",
+        "Approver distinguished from proposer"
+      ],
+      "testStrategy": "Test various ownership scenarios",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 11,
+      "title": "Implement Supersession Tracking",
+      "description": "Track when decisions are changed or reversed",
+      "phase": "4.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [7],
+      "files": ["packages/ai/src/agents/decision.ts"],
+      "subtasks": [
+        "Create findSupersession(newDecision, existingDecisions) function",
+        "Use semantic similarity to find related decisions",
+        "Detect reversal language ('changed', 'instead')",
+        "Create supersession link (old → new)",
+        "Mark old decision as superseded"
+      ],
+      "acceptanceCriteria": [
+        "Related decisions found via similarity",
+        "Reversals linked correctly",
+        "Old decisions marked superseded"
+      ],
+      "testStrategy": "Test with decision evolution scenarios",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 12,
+      "title": "Create Commitment Extraction Trigger Task",
+      "description": "Background task to extract commitments from analyzed threads",
+      "phase": "4.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 2, 3, 4, 5],
+      "files": ["apps/server/src/trigger/commitment-extraction.ts"],
+      "subtasks": [
+        "Create extractCommitmentsTask with Trigger.dev",
+        "Subscribe to thread analysis completion events",
+        "Fetch promise and request claims for thread",
+        "Process claims through CommitmentAgent",
+        "Store extracted commitments"
+      ],
+      "acceptanceCriteria": [
+        "Task runs on thread analysis events",
+        "Commitments extracted and stored",
+        "Handles empty claim sets gracefully"
+      ],
+      "testStrategy": "Integration test with sample threads",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 13,
+      "title": "Create Decision Extraction Trigger Task",
+      "description": "Background task to extract decisions from analyzed threads",
+      "phase": "4.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [7, 8, 9, 10, 11],
+      "files": ["apps/server/src/trigger/decision-extraction.ts"],
+      "subtasks": [
+        "Create extractDecisionsTask with Trigger.dev",
+        "Subscribe to thread analysis completion events",
+        "Fetch decision claims for thread",
+        "Process claims through DecisionAgent",
+        "Store extracted decisions with rationale"
+      ],
+      "acceptanceCriteria": [
+        "Task runs on thread analysis events",
+        "Decisions extracted with rationale",
+        "Supersession checked for existing decisions"
+      ],
+      "testStrategy": "Integration test with decision threads",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 14,
+      "title": "Implement Daily Digest Generation",
+      "description": "Create daily summary of open commitments",
+      "phase": "4.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6],
+      "files": ["apps/server/src/trigger/commitment-digest.ts"],
+      "subtasks": [
+        "Create generateDigestTask with cron schedule (9 AM user timezone)",
+        "Query user's open commitments (owed by me, owed to me)",
+        "Group by urgency and overdue status",
+        "Generate digest content with links",
+        "Send via email or notification"
+      ],
+      "acceptanceCriteria": [
+        "Digest generated daily per user",
+        "Overdue items highlighted",
+        "Links to source threads included"
+      ],
+      "testStrategy": "Test digest generation, verify content",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 15,
+      "title": "Implement Follow-up Draft Generation",
+      "description": "Generate contextual follow-up emails for overdue commitments",
+      "phase": "4.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6],
+      "files": ["packages/ai/src/agents/commitment.ts"],
+      "subtasks": [
+        "Create generateFollowup(commitment) function",
+        "Fetch relationship context for recipient",
+        "Generate polite nudge based on days overdue",
+        "Include original commitment context",
+        "Return draft for PRD-08 drafting flow"
+      ],
+      "acceptanceCriteria": [
+        "Follow-up contextually appropriate",
+        "Tone matches relationship",
+        "Original context included"
+      ],
+      "testStrategy": "Test with various overdue periods",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 16,
+      "title": "Create Commitments API Router",
+      "description": "Expose commitment CRUD and queries via API",
+      "phase": "4.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [12],
+      "files": ["packages/api/src/routers/commitments.ts"],
+      "subtasks": [
+        "Create commitmentsRouter with authed procedures",
+        "Implement list(filters) - owed by me, owed to me, all",
+        "Implement get(id) for single commitment",
+        "Implement complete(id) to mark completed",
+        "Implement dismiss(id) to dismiss incorrect extraction",
+        "Implement generateFollowup(id) to create follow-up draft"
+      ],
+      "acceptanceCriteria": [
+        "CRUD operations working",
+        "Filtering by debtor/creditor",
+        "Follow-up generation accessible"
+      ],
+      "testStrategy": "Integration tests for all procedures",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 17,
+      "title": "Create Decisions API Router",
+      "description": "Expose decision queries via API",
+      "phase": "4.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [13],
+      "files": ["packages/api/src/routers/decisions.ts"],
+      "subtasks": [
+        "Create decisionsRouter with authed procedures",
+        "Implement list(filters) with topic/date filtering",
+        "Implement get(id) with full rationale",
+        "Implement search(query) for semantic search",
+        "Implement getWithSupersession(id) for decision chain"
+      ],
+      "acceptanceCriteria": [
+        "Query operations working",
+        "Search finds relevant decisions",
+        "Supersession chain accessible"
+      ],
+      "testStrategy": "Integration tests, search quality tests",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 18,
+      "title": "Implement Correction API",
+      "description": "Allow users to correct commitment and decision extractions",
+      "phase": "4.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [16, 17],
+      "files": [
+        "packages/api/src/routers/commitments.ts",
+        "packages/api/src/routers/decisions.ts"
+      ],
+      "subtasks": [
+        "Add update mutation to both routers",
+        "Allow field corrections (parties, dates, text)",
+        "Store correction as feedback record",
+        "Track correction history for audit",
+        "Flag AI-corrected vs user-corrected"
+      ],
+      "acceptanceCriteria": [
+        "Users can correct extractions",
+        "Corrections logged for improvement",
+        "History maintained"
+      ],
+      "testStrategy": "Test correction flow, verify persistence",
+      "estimatedLOC": 80
+    }
+  ],
+  "criticalPath": [1, 3, 5, 7, 11, 12, 13, 16, 17],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 1680
+  }
+}

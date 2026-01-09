@@ -26,6 +26,7 @@ import { Route as OnboardingCreateOrgRouteImport } from './routes/onboarding/cre
 import { Route as OnboardingCompleteRouteImport } from './routes/onboarding/complete'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications'
+import { Route as DashboardEmailAccountsRouteImport } from './routes/dashboard/email-accounts'
 import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
 import { Route as DashboardAiRouteImport } from './routes/dashboard/ai'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -121,6 +122,11 @@ const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardEmailAccountsRoute = DashboardEmailAccountsRouteImport.update({
+  id: '/email-accounts',
+  path: '/email-accounts',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardBillingRoute = DashboardBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/dashboard/ai': typeof DashboardAiRoute
   '/dashboard/billing': typeof DashboardBillingRoute
+  '/dashboard/email-accounts': typeof DashboardEmailAccountsRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/onboarding/complete': typeof OnboardingCompleteRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/dashboard/ai': typeof DashboardAiRoute
   '/dashboard/billing': typeof DashboardBillingRoute
+  '/dashboard/email-accounts': typeof DashboardEmailAccountsRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/onboarding/complete': typeof OnboardingCompleteRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/dashboard/ai': typeof DashboardAiRoute
   '/dashboard/billing': typeof DashboardBillingRoute
+  '/dashboard/email-accounts': typeof DashboardEmailAccountsRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/onboarding/complete': typeof OnboardingCompleteRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/dashboard/ai'
     | '/dashboard/billing'
+    | '/dashboard/email-accounts'
     | '/dashboard/notifications'
     | '/dashboard/settings'
     | '/onboarding/complete'
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/dashboard/ai'
     | '/dashboard/billing'
+    | '/dashboard/email-accounts'
     | '/dashboard/notifications'
     | '/dashboard/settings'
     | '/onboarding/complete'
@@ -322,6 +333,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/dashboard/ai'
     | '/dashboard/billing'
+    | '/dashboard/email-accounts'
     | '/dashboard/notifications'
     | '/dashboard/settings'
     | '/onboarding/complete'
@@ -473,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardNotificationsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/email-accounts': {
+      id: '/dashboard/email-accounts'
+      path: '/email-accounts'
+      fullPath: '/dashboard/email-accounts'
+      preLoaderRoute: typeof DashboardEmailAccountsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/billing': {
       id: '/dashboard/billing'
       path: '/billing'
@@ -560,6 +579,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface DashboardRouteRouteChildren {
   DashboardAiRoute: typeof DashboardAiRoute
   DashboardBillingRoute: typeof DashboardBillingRoute
+  DashboardEmailAccountsRoute: typeof DashboardEmailAccountsRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -572,6 +592,7 @@ interface DashboardRouteRouteChildren {
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAiRoute: DashboardAiRoute,
   DashboardBillingRoute: DashboardBillingRoute,
+  DashboardEmailAccountsRoute: DashboardEmailAccountsRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,

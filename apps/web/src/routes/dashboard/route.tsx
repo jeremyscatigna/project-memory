@@ -66,6 +66,12 @@ function getBreadcrumbs(pathname: string) {
     return breadcrumbs;
   }
 
+  // Email Accounts
+  if (pathname === "/dashboard/email-accounts") {
+    breadcrumbs.push({ label: "Email Accounts" });
+    return breadcrumbs;
+  }
+
   // Team section
   if (pathname.startsWith("/dashboard/team")) {
     if (pathname === "/dashboard/team") {

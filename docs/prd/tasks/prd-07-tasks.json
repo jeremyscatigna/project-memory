@@ -1,0 +1,376 @@
+{
+  "prdId": "PRD-07",
+  "title": "Triage & Routing Agent",
+  "description": "Agent 6: Inbox automation, action suggestions, and priority ranking",
+  "totalTasks": 14,
+  "phases": [
+    {
+      "id": "7.0",
+      "name": "Priority Ranking",
+      "description": "Rank emails by importance and urgency"
+    },
+    {
+      "id": "7.1",
+      "name": "Action Suggestions",
+      "description": "Recommend what to do with each email"
+    },
+    {
+      "id": "7.2",
+      "name": "Batch Processing",
+      "description": "Efficient inbox processing features"
+    },
+    {
+      "id": "7.3",
+      "name": "Learning & Adaptation",
+      "description": "Improve suggestions over time"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Urgency Assessment",
+      "description": "Determine how time-sensitive an email is",
+      "phase": "7.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/scoring/priority.ts"],
+      "subtasks": [
+        "Create assessUrgency(thread, analysis) function",
+        "Extract deadline mentions from thread content",
+        "Analyze urgency language ('ASAP', 'urgent', 'deadline')",
+        "Consider sender importance from relationship data",
+        "Check for explicit priority markers",
+        "Return 0-1 score with contributing factors"
+      ],
+      "acceptanceCriteria": [
+        "Urgent threads score > 0.7",
+        "Non-urgent threads score < 0.3",
+        "Contributing factors listed"
+      ],
+      "testStrategy": "Test with threads at various urgency levels",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 2,
+      "title": "Implement Importance Assessment",
+      "description": "Determine how important an email is",
+      "phase": "7.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/scoring/priority.ts"],
+      "subtasks": [
+        "Create assessImportance(thread, analysis) function",
+        "Score sender importance from relationship data",
+        "Analyze topic significance (deals, decisions, escalations)",
+        "Consider financial impact mentions",
+        "Factor in involvement of VIPs",
+        "Return 0-1 score with factors"
+      ],
+      "acceptanceCriteria": [
+        "High-stakes threads score high",
+        "Routine threads score medium/low",
+        "Factors explain scoring"
+      ],
+      "testStrategy": "Test with business-critical vs routine threads",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 3,
+      "title": "Implement Priority Matrix",
+      "description": "Combine urgency and importance into priority tier",
+      "phase": "7.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 2],
+      "files": ["packages/ai/src/scoring/priority.ts"],
+      "subtasks": [
+        "Create calculatePriority(urgency, importance) function",
+        "Define tier thresholds (urgent, high, medium, low)",
+        "Implement 2x2 matrix classification",
+        "Handle edge cases (both scores middle)",
+        "Return priority tier with explanation"
+      ],
+      "acceptanceCriteria": [
+        "High urgency + high importance = URGENT",
+        "Tiers correctly assigned",
+        "Explanation provided"
+      ],
+      "testStrategy": "Test all quadrant combinations",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 4,
+      "title": "Implement Dynamic Re-ranking",
+      "description": "Update priorities as context changes over time",
+      "phase": "7.0",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [3],
+      "files": ["packages/ai/src/scoring/priority.ts"],
+      "subtasks": [
+        "Create updatePriority(thread, timePassed) function",
+        "Increase urgency as deadlines approach",
+        "Decrease priority for aged threads without response",
+        "Incorporate new information from related threads",
+        "Trigger re-rank on significant events"
+      ],
+      "acceptanceCriteria": [
+        "Approaching deadlines increase priority",
+        "Stale threads deprioritize appropriately",
+        "Re-ranking triggered on new info"
+      ],
+      "testStrategy": "Simulate time passing, verify priority changes",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 5,
+      "title": "Implement Action Classification",
+      "description": "Determine appropriate action for each email",
+      "phase": "7.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3],
+      "files": ["packages/ai/src/scoring/action.ts"],
+      "subtasks": [
+        "Create classifyAction(thread, analysis, userPatterns) function",
+        "Define action types: respond, archive, delegate, schedule, wait, escalate",
+        "Create LLM prompt for action classification",
+        "Consider thread type and intent",
+        "Factor in user's historical actions",
+        "Return suggested action with confidence"
+      ],
+      "acceptanceCriteria": [
+        "Actions match thread needs",
+        "User patterns influence suggestions",
+        "Confidence reflects certainty"
+      ],
+      "testStrategy": "Test with threads requiring each action type",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 6,
+      "title": "Implement Action Reasoning",
+      "description": "Explain why an action is suggested",
+      "phase": "7.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5],
+      "files": ["packages/ai/src/scoring/action.ts"],
+      "subtasks": [
+        "Create generateReasoning(action, factors) function",
+        "Generate human-readable explanation",
+        "Reference specific thread elements",
+        "Include relevant user patterns",
+        "Keep reasoning concise (1-2 sentences)"
+      ],
+      "acceptanceCriteria": [
+        "Reasoning is clear and actionable",
+        "References specific content",
+        "Concise format"
+      ],
+      "testStrategy": "Evaluate reasoning clarity with user feedback",
+      "estimatedLOC": 60
+    },
+    {
+      "id": 7,
+      "title": "Implement Delegation Suggestions",
+      "description": "Suggest who should handle delegated emails",
+      "phase": "7.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["packages/ai/src/scoring/action.ts"],
+      "subtasks": [
+        "Create suggestDelegate(thread, teamContext) function",
+        "Analyze thread topic and requirements",
+        "Match to team member expertise",
+        "Consider current workload if available",
+        "Return delegate with reason"
+      ],
+      "acceptanceCriteria": [
+        "Delegate matches thread needs",
+        "Reason explains match",
+        "Team context considered"
+      ],
+      "testStrategy": "Test with various thread types and team structures",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 8,
+      "title": "Implement Response Time Suggestion",
+      "description": "Suggest when to respond based on context",
+      "phase": "7.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1, 5],
+      "files": ["packages/ai/src/scoring/action.ts"],
+      "subtasks": [
+        "Create suggestResponseTime(thread, urgency, calendar) function",
+        "Consider urgency score",
+        "Factor in sender expectations (from relationship data)",
+        "Check calendar availability if integrated",
+        "Return suggested window (e.g., 'within 2 hours')"
+      ],
+      "acceptanceCriteria": [
+        "Urgent threads suggest quick response",
+        "Availability factored in",
+        "Realistic windows suggested"
+      ],
+      "testStrategy": "Test with various urgency and availability scenarios",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 9,
+      "title": "Implement Smart Grouping",
+      "description": "Group related emails for batch action",
+      "phase": "7.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["packages/ai/src/agents/triage.ts"],
+      "subtasks": [
+        "Create groupThreads(threads) function",
+        "Group by sender for sender-focused processing",
+        "Group by topic for topic-focused processing",
+        "Group by suggested action for action-focused processing",
+        "Allow custom grouping criteria"
+      ],
+      "acceptanceCriteria": [
+        "Meaningful groups created",
+        "Multiple grouping strategies available",
+        "Groups actionable together"
+      ],
+      "testStrategy": "Test grouping with diverse inbox contents",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 10,
+      "title": "Implement Batch Actions",
+      "description": "Apply action to multiple threads at once",
+      "phase": "7.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [9],
+      "files": ["packages/ai/src/agents/triage.ts"],
+      "subtasks": [
+        "Create applyBatchAction(threadIds, action) function",
+        "Validate action applicable to all threads",
+        "Execute action for each thread",
+        "Track individual success/failure",
+        "Return batch result summary"
+      ],
+      "acceptanceCriteria": [
+        "Batch execution efficient",
+        "Failures don't stop batch",
+        "Results per-thread available"
+      ],
+      "testStrategy": "Test batch operations, verify partial failure handling",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 11,
+      "title": "Implement Focus Mode",
+      "description": "Filter inbox to show only priority items",
+      "phase": "7.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [3],
+      "files": ["packages/ai/src/agents/triage.ts"],
+      "subtasks": [
+        "Create getFocusView(threads, settings) function",
+        "Filter to urgent and high priority only",
+        "Allow user-configurable thresholds",
+        "Show count of hidden items",
+        "Support different focus levels"
+      ],
+      "acceptanceCriteria": [
+        "Low priority hidden",
+        "User can adjust threshold",
+        "Hidden count visible"
+      ],
+      "testStrategy": "Test filtering with various inbox compositions",
+      "estimatedLOC": 50
+    },
+    {
+      "id": 12,
+      "title": "Implement Action Feedback",
+      "description": "Learn from user actions on suggestions",
+      "phase": "7.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [5],
+      "files": ["packages/ai/src/agents/triage.ts"],
+      "subtasks": [
+        "Create recordFeedback(suggestion, userAction) function",
+        "Track suggestion acceptance rate",
+        "Record when user chooses different action",
+        "Store feedback for model improvement",
+        "Calculate per-action-type accuracy"
+      ],
+      "acceptanceCriteria": [
+        "All feedback recorded",
+        "Accuracy metrics calculated",
+        "Data available for training"
+      ],
+      "testStrategy": "Test feedback recording, verify metrics",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 13,
+      "title": "Implement Rule Learning",
+      "description": "Detect patterns in user behavior",
+      "phase": "7.3",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [12],
+      "files": ["packages/ai/src/agents/triage.ts"],
+      "subtasks": [
+        "Create detectRules(userHistory) function",
+        "Identify consistent action patterns",
+        "Codify patterns as suggested rules",
+        "Validate rules against recent data",
+        "Present learned rules to user for approval"
+      ],
+      "acceptanceCriteria": [
+        "Patterns detected from history",
+        "Rules presented for user approval",
+        "Only high-confidence rules suggested"
+      ],
+      "testStrategy": "Test with users having clear patterns",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 14,
+      "title": "Implement Explicit Rules",
+      "description": "Allow users to define their own rules",
+      "phase": "7.3",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/triage.ts"],
+      "subtasks": [
+        "Create Rule type definition",
+        "Implement rule matching engine",
+        "Support conditions: sender, subject, topic, has_attachment",
+        "Support actions: archive, label, priority_override, delegate",
+        "Implement rule priority ordering"
+      ],
+      "acceptanceCriteria": [
+        "Users can create rules",
+        "Rules execute automatically",
+        "Priority ordering respected"
+      ],
+      "testStrategy": "Test rule creation and execution",
+      "estimatedLOC": 120
+    }
+  ],
+  "criticalPath": [1, 2, 3, 5, 6, 9, 10],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 1160
+  }
+}

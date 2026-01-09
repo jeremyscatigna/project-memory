@@ -3,6 +3,8 @@ import { adminRouter } from "./admin";
 import { apiKeysRouter } from "./api-keys";
 import { auditRouter } from "./audit";
 import { creditsRouter } from "./credits";
+import { emailAccountsRouter } from "./email-accounts";
+import { emailSyncRouter } from "./email-sync";
 import { featureFlagsRouter } from "./feature-flags";
 import { notificationsRouter } from "./notifications";
 import { uploadsRouter } from "./uploads";
@@ -21,6 +23,10 @@ export const appRouter = router({
   }),
   // Audit logs
   audit: auditRouter,
+  // Email accounts management (MEMORYSTACK)
+  emailAccounts: emailAccountsRouter,
+  // Email sync control (MEMORYSTACK)
+  emailSync: emailSyncRouter,
   // Credits management
   credits: creditsRouter,
   // User operations (profile, data export)

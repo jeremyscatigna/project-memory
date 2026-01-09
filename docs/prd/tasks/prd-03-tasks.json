@@ -1,0 +1,558 @@
+{
+  "prdId": "PRD-03",
+  "title": "Thread Understanding Agent",
+  "description": "AI agent for thread analysis, classification, claim extraction, and brief generation",
+  "totalTasks": 21,
+  "phases": [
+    {
+      "id": "3.0",
+      "name": "Agent Foundation",
+      "description": "Create agent skeleton and prompt infrastructure"
+    },
+    {
+      "id": "3.1",
+      "name": "Classification Pipeline",
+      "description": "Implement thread classification capabilities"
+    },
+    {
+      "id": "3.2",
+      "name": "Extraction Pipeline",
+      "description": "Implement claim extraction from messages"
+    },
+    {
+      "id": "3.3",
+      "name": "Generation Pipeline",
+      "description": "Implement summaries and open loop detection"
+    },
+    {
+      "id": "3.4",
+      "name": "Integration",
+      "description": "Connect agent to system"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Create Thread Understanding Agent Class",
+      "description": "Create the main agent class that orchestrates all thread analysis",
+      "phase": "3.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/thread-understanding.ts"],
+      "subtasks": [
+        "Define ThreadUnderstandingAgent class structure",
+        "Implement analyze(thread) main entry point",
+        "Set up AI SDK (Vercel AI) client configuration",
+        "Create ThreadAnalysis return type with all analysis components",
+        "Implement parallel execution for independent classifiers",
+        "Add error handling and graceful degradation"
+      ],
+      "acceptanceCriteria": [
+        "Agent instantiates with AI provider configuration",
+        "analyze() orchestrates all sub-analyses",
+        "Parallel execution reduces latency"
+      ],
+      "testStrategy": "Unit tests for orchestration, mock sub-analyses",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 2,
+      "title": "Define Claim Types and Schemas",
+      "description": "Create Zod schemas for all claim types extracted from email",
+      "phase": "3.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/types/claims.ts"],
+      "subtasks": [
+        "Define ClaimType enum (fact, promise, request, question, decision)",
+        "Create BaseClaim schema with common fields",
+        "Create FactClaim schema for factual statements",
+        "Create PromiseClaim schema for commitments",
+        "Create RequestClaim schema for asks",
+        "Create QuestionClaim schema with answered status",
+        "Create DecisionClaim schema with rationale",
+        "Add evidence link schema for source attribution"
+      ],
+      "acceptanceCriteria": [
+        "All claim types defined with Zod schemas",
+        "Schemas match PRD-00 database model",
+        "Evidence linking supported in all types"
+      ],
+      "testStrategy": "Schema validation tests with valid/invalid examples",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 3,
+      "title": "Create Prompt Templates",
+      "description": "Build structured prompts for classification and extraction",
+      "phase": "3.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [2],
+      "files": [
+        "packages/ai/src/prompts/thread-understanding/classification.ts",
+        "packages/ai/src/prompts/thread-understanding/extraction.ts",
+        "packages/ai/src/prompts/thread-understanding/summarization.ts"
+      ],
+      "subtasks": [
+        "Create intent classification prompt with category list",
+        "Create urgency scoring prompt with reasoning",
+        "Create sentiment analysis prompt for per-message scoring",
+        "Create claim extraction prompt with structured output",
+        "Create brief generation prompt with 3-line constraint",
+        "Add few-shot examples for consistency",
+        "Define JSON output schemas for all prompts"
+      ],
+      "acceptanceCriteria": [
+        "Prompts produce consistent JSON output",
+        "Few-shot examples improve accuracy",
+        "All prompts tested for format compliance"
+      ],
+      "testStrategy": "LLM output format tests, consistency checks across runs",
+      "estimatedLOC": 250
+    },
+    {
+      "id": 4,
+      "title": "Implement Evidence Linking Utility",
+      "description": "Create utilities for linking claims to source messages",
+      "phase": "3.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [2],
+      "files": ["packages/ai/src/utils/evidence.ts"],
+      "subtasks": [
+        "Create createEvidenceLink(claim, message, quote) function",
+        "Implement quote extraction with context window",
+        "Validate quote exists in source message",
+        "Create bulk evidence linking for multiple claims",
+        "Support multi-message evidence chains"
+      ],
+      "acceptanceCriteria": [
+        "Claims linked to source messages with quotes",
+        "Quotes validated against source",
+        "Multi-source linking supported"
+      ],
+      "testStrategy": "Unit tests for linking, quote validation tests",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 5,
+      "title": "Implement Intent Classifier",
+      "description": "Classify threads by primary intent",
+      "phase": "3.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 3],
+      "files": ["packages/ai/src/agents/classifiers/intent.ts"],
+      "subtasks": [
+        "Create classifyIntent(thread) function",
+        "Implement prompt construction with thread content",
+        "Parse LLM response into intent category",
+        "Return confidence score with reasoning",
+        "Handle edge cases (empty thread, mixed intent)"
+      ],
+      "acceptanceCriteria": [
+        "Classifies into 9 intent categories",
+        "Confidence score reflects clarity",
+        "Reasoning explains classification"
+      ],
+      "testStrategy": "Test each intent type with example threads",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 6,
+      "title": "Implement Urgency Scorer",
+      "description": "Assess thread urgency level with reasoning",
+      "phase": "3.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 3],
+      "files": ["packages/ai/src/agents/classifiers/urgency.ts"],
+      "subtasks": [
+        "Create scoreUrgency(thread) function",
+        "Extract deadline mentions from content",
+        "Analyze urgency language patterns",
+        "Consider sender importance (from relationship data if available)",
+        "Return 0-1 score with contributing factors"
+      ],
+      "acceptanceCriteria": [
+        "Score reflects deadline proximity",
+        "Urgency language detected (ASAP, urgent, deadline)",
+        "Reasoning lists contributing factors"
+      ],
+      "testStrategy": "Test with threads at various urgency levels",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 7,
+      "title": "Implement Sentiment Analyzer",
+      "description": "Track sentiment across thread messages",
+      "phase": "3.1",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [1, 3],
+      "files": ["packages/ai/src/agents/classifiers/sentiment.ts"],
+      "subtasks": [
+        "Create analyzeSentiment(thread) function",
+        "Score sentiment per message (-1 to 1)",
+        "Detect sentiment shifts between messages",
+        "Identify escalation patterns",
+        "Return overall sentiment and trend"
+      ],
+      "acceptanceCriteria": [
+        "Per-message sentiment scores",
+        "Escalation detected and flagged",
+        "Trend direction computed (improving/deteriorating)"
+      ],
+      "testStrategy": "Test with threads showing sentiment changes",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 8,
+      "title": "Implement Thread Type Detector",
+      "description": "Identify thread structure type",
+      "phase": "3.1",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [1],
+      "files": ["packages/ai/src/agents/classifiers/thread-type.ts"],
+      "subtasks": [
+        "Create detectThreadType(thread) function",
+        "Analyze message count and reply patterns",
+        "Detect single_message, back_and_forth, broadcast patterns",
+        "Identify forward_chain and chain_reply structures",
+        "Return type with confidence"
+      ],
+      "acceptanceCriteria": [
+        "All thread types correctly identified",
+        "Structure-based (no LLM needed)",
+        "Fast execution"
+      ],
+      "testStrategy": "Test with each thread type",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 9,
+      "title": "Implement Fact Extractor",
+      "description": "Extract factual statements from messages",
+      "phase": "3.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 4],
+      "files": ["packages/ai/src/agents/extractors/claims.ts"],
+      "subtasks": [
+        "Create extractFacts(messages) function",
+        "Identify factual statements in content",
+        "Distinguish facts from opinions",
+        "Link facts to source messages with quotes",
+        "Assign confidence based on language clarity"
+      ],
+      "acceptanceCriteria": [
+        "Factual statements extracted",
+        "Opinions excluded or marked differently",
+        "Evidence linked for each fact"
+      ],
+      "testStrategy": "Test with fact-heavy and opinion-heavy content",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 10,
+      "title": "Implement Promise Detector",
+      "description": "Identify commitments and promises in messages",
+      "phase": "3.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 4],
+      "files": ["packages/ai/src/agents/extractors/claims.ts"],
+      "subtasks": [
+        "Create extractPromises(messages) function",
+        "Detect commitment language ('I will', 'We'll send', etc.)",
+        "Identify debtor (who committed) from message sender",
+        "Extract deliverable from context",
+        "Handle conditional promises appropriately"
+      ],
+      "acceptanceCriteria": [
+        "Explicit promises detected",
+        "Implicit commitments identified",
+        "Conditional promises marked"
+      ],
+      "testStrategy": "Test with various commitment patterns",
+      "estimatedLOC": 110
+    },
+    {
+      "id": 11,
+      "title": "Implement Request Detector",
+      "description": "Identify requests and asks in messages",
+      "phase": "3.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 4],
+      "files": ["packages/ai/src/agents/extractors/claims.ts"],
+      "subtasks": [
+        "Create extractRequests(messages) function",
+        "Detect request patterns ('Can you', 'Please', etc.)",
+        "Identify direct and indirect requests",
+        "Extract what is being requested",
+        "Identify target recipient if specified"
+      ],
+      "acceptanceCriteria": [
+        "Direct requests detected",
+        "Indirect requests identified",
+        "Request target linked to recipient"
+      ],
+      "testStrategy": "Test with various request phrasings",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 12,
+      "title": "Implement Question Identifier",
+      "description": "Extract questions asked in thread",
+      "phase": "3.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 4],
+      "files": ["packages/ai/src/agents/extractors/questions.ts"],
+      "subtasks": [
+        "Create extractQuestions(messages) function",
+        "Detect explicit questions (question marks)",
+        "Identify implicit questions (requests for info)",
+        "Distinguish rhetorical questions",
+        "Track question type (yes/no, open-ended, clarification)"
+      ],
+      "acceptanceCriteria": [
+        "All question types detected",
+        "Rhetorical questions flagged",
+        "Question content extracted"
+      ],
+      "testStrategy": "Test with various question patterns",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 13,
+      "title": "Implement Decision Detector",
+      "description": "Identify decisions and approvals in messages",
+      "phase": "3.2",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [3, 4],
+      "files": ["packages/ai/src/agents/extractors/claims.ts"],
+      "subtasks": [
+        "Create extractDecisions(messages) function",
+        "Detect decision language ('We decided', 'Approved', etc.)",
+        "Identify decision maker from context",
+        "Extract what was decided",
+        "Distinguish tentative from final decisions"
+      ],
+      "acceptanceCriteria": [
+        "Final decisions detected",
+        "Tentative decisions marked differently",
+        "Decision maker attributed"
+      ],
+      "testStrategy": "Test with various decision patterns",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 14,
+      "title": "Implement Brief Generator",
+      "description": "Generate 3-line thread summaries",
+      "phase": "3.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 6, 9, 10, 11, 12, 13],
+      "files": ["packages/ai/src/agents/generators/brief.ts"],
+      "subtasks": [
+        "Create generateBrief(thread, analysis) function",
+        "Include classification context in prompt",
+        "Structure: what happened, who's involved, what's open",
+        "Enforce 3-line maximum with quality",
+        "Make brief actionable, not just descriptive"
+      ],
+      "acceptanceCriteria": [
+        "Brief is exactly 3 lines",
+        "Captures thread essence",
+        "Includes key actors and open items"
+      ],
+      "testStrategy": "Test with various thread types, quality rating",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 15,
+      "title": "Implement Timeline Generator",
+      "description": "Create chronological event list from thread",
+      "phase": "3.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [9, 10, 13],
+      "files": ["packages/ai/src/agents/generators/timeline.ts"],
+      "subtasks": [
+        "Create generateTimeline(thread, claims) function",
+        "Extract key events from claims",
+        "Order events chronologically",
+        "Include timestamps from source messages",
+        "Filter to significant events only"
+      ],
+      "acceptanceCriteria": [
+        "Events ordered by timestamp",
+        "Only significant events included",
+        "Events linked to source messages"
+      ],
+      "testStrategy": "Test with complex threads, verify ordering",
+      "estimatedLOC": 70
+    },
+    {
+      "id": 16,
+      "title": "Implement Open Loop Detector",
+      "description": "Find unanswered questions and pending items",
+      "phase": "3.3",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [12],
+      "files": ["packages/ai/src/agents/detectors/open-loops.ts"],
+      "subtasks": [
+        "Create detectOpenLoops(questions, messages) function",
+        "Match questions to subsequent answers",
+        "Use semantic similarity for answer matching",
+        "Flag questions without answers as open",
+        "Consider partial answers"
+      ],
+      "acceptanceCriteria": [
+        "Unanswered questions identified",
+        "Answered questions matched correctly",
+        "Partial answers flagged"
+      ],
+      "testStrategy": "Test with threads containing answered/unanswered questions",
+      "estimatedLOC": 90
+    },
+    {
+      "id": 17,
+      "title": "Implement Waiting-On Analyzer",
+      "description": "Identify what's blocking thread progress",
+      "phase": "3.3",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [10, 11, 16],
+      "files": ["packages/ai/src/agents/analyzers/waiting-on.ts"],
+      "subtasks": [
+        "Create analyzeWaitingOn(thread, analysis) function",
+        "Identify pending promises from others",
+        "Identify requests awaiting response",
+        "Determine who owes what to move forward",
+        "Prioritize blocking items"
+      ],
+      "acceptanceCriteria": [
+        "Blocking items identified",
+        "Responsibility attributed",
+        "Actionable summary generated"
+      ],
+      "testStrategy": "Test with blocked threads, verify attribution",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 18,
+      "title": "Create Trigger.dev Analysis Task",
+      "description": "Create background task for thread analysis",
+      "phase": "3.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["apps/server/src/trigger/thread-analysis.ts"],
+      "subtasks": [
+        "Create analyzeThreadTask with Trigger.dev",
+        "Accept threadId as payload",
+        "Fetch thread with messages from database",
+        "Call ThreadUnderstandingAgent.analyze()",
+        "Store analysis results in database",
+        "Update thread record with brief and classification"
+      ],
+      "acceptanceCriteria": [
+        "Task processes threads from sync events",
+        "Analysis stored in database",
+        "Thread record updated"
+      ],
+      "testStrategy": "Integration test with sample thread",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 19,
+      "title": "Implement Batch Analysis Processing",
+      "description": "Efficiently analyze multiple threads",
+      "phase": "3.4",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [18],
+      "files": ["apps/server/src/trigger/thread-analysis.ts"],
+      "subtasks": [
+        "Create batchAnalyzeThreadsTask",
+        "Accept array of threadIds",
+        "Process threads with concurrency limit",
+        "Report progress during batch",
+        "Handle partial failures gracefully"
+      ],
+      "acceptanceCriteria": [
+        "Batch processing efficient",
+        "Concurrency controlled",
+        "Failures don't stop batch"
+      ],
+      "testStrategy": "Test with 100-thread batch",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 20,
+      "title": "Create Threads API Router",
+      "description": "Expose thread intelligence via API",
+      "phase": "3.4",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [18],
+      "files": ["packages/api/src/routers/threads.ts"],
+      "subtasks": [
+        "Create threadsRouter with authed procedures",
+        "Implement getBrief(threadId) procedure",
+        "Implement getClaims(threadId) procedure",
+        "Implement getOpenLoops(threadId) procedure",
+        "Implement getAnalysis(threadId) for full analysis",
+        "Add filtering and pagination for claims"
+      ],
+      "acceptanceCriteria": [
+        "Thread intelligence queryable via API",
+        "Efficient queries with proper indexes",
+        "Authorization enforced"
+      ],
+      "testStrategy": "Integration tests for all procedures",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 21,
+      "title": "Implement Confidence Override API",
+      "description": "Allow users to correct AI extractions",
+      "phase": "3.4",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [20],
+      "files": ["packages/api/src/routers/threads.ts"],
+      "subtasks": [
+        "Add updateClaim mutation to router",
+        "Allow confidence adjustment",
+        "Allow dismissal of incorrect claims",
+        "Store correction feedback for model improvement",
+        "Track correction history"
+      ],
+      "acceptanceCriteria": [
+        "Users can correct extractions",
+        "Corrections persisted",
+        "Feedback captured for training"
+      ],
+      "testStrategy": "Test correction flow, verify persistence",
+      "estimatedLOC": 70
+    }
+  ],
+  "criticalPath": [1, 2, 3, 5, 10, 14, 18, 20],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 2100
+  }
+}

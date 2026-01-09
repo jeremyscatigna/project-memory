@@ -97,6 +97,52 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 - Use ref as a prop instead of `React.forwardRef`
 
+**tRPC + React Query (CRITICAL):**
+
+Always use the `queryOptions` and `mutationOptions` pattern with React Query's `useQuery` and `useMutation`. Never use the legacy tRPC hooks directly.
+
+```typescript
+// ✅ CORRECT - Use queryOptions + useQuery
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTRPC } from "~/trpc/react";
+
+function MyComponent() {
+  const trpc = useTRPC();
+
+  // Queries - use queryOptions
+  const { data, isLoading } = useQuery(
+    trpc.threads.getById.queryOptions({ threadId: "123" })
+  );
+
+  // Mutations - use mutationOptions
+  const archiveMutation = useMutation(
+    trpc.threads.archive.mutationOptions()
+  );
+
+  // With callbacks
+  const updateMutation = useMutation(
+    trpc.threads.update.mutationOptions({
+      onSuccess: (data) => {
+        // handle success
+      },
+      onError: (error) => {
+        // handle error
+      },
+    })
+  );
+}
+
+// ❌ WRONG - Don't use legacy tRPC hooks
+const { data } = trpc.threads.getById.useQuery({ threadId: "123" });
+const mutation = trpc.threads.archive.useMutation();
+```
+
+This pattern provides:
+- Better TypeScript inference
+- Composable query/mutation options
+- Consistent with React Query best practices
+- Easier testing and query key management
+
 **Solid/Svelte/Vue/Qwik:**
 
 - Use `class` and `for` attributes (not `className` or `htmlFor`)
@@ -124,3 +170,124 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+
+---
+
+## MEMORYSTACK UI Design Principles
+
+This is a **transformational AI-native email intelligence platform**. The UI must reflect this ambition - we're not building another email client, we're building the future of knowledge work.
+
+### Design Philosophy
+
+**Think Outside the Box**
+- Challenge every email client convention - if Gmail/Outlook does it, ask "why?" and "can we do better?"
+- The inbox is NOT a list of messages - it's a stream of decisions, commitments, and relationships
+- Every interaction should feel like having an AI assistant sitting next to you
+- Information density matters - power users want MORE context, not less
+- The UI should make users feel smarter, not overwhelmed
+
+### Visual Hierarchy Principles
+
+1. **Intelligence First, Messages Second**
+   - Thread briefs should be MORE prominent than subject lines
+   - Commitments and decisions should have visual weight equal to message content
+   - Open loops should create visual urgency (not just a badge count)
+   - Confidence scores should be visible but not distracting
+
+2. **Progressive Disclosure with Depth**
+   - Surface-level: 3-line brief, suggested action, urgency indicator
+   - One-click: Full intelligence panel (commitments, decisions, open questions)
+   - Deep dive: Evidence chain, historical context, related threads
+   - Never hide intelligence behind more than one click
+
+3. **Contextual Intelligence**
+   - When hovering over a person → Show relationship summary
+   - When reading a commitment → Show evidence link
+   - When composing → Show relevant history and contradictions
+   - Every piece of data should link to its source
+
+### Component Design Rules
+
+**Use shadcn/ui for primitives** - buttons, inputs, dialogs, sheets, etc.
+**Build custom for intelligence** - briefs, evidence links, confidence indicators, timeline views
+
+**Intelligence Components Must Have:**
+- Clear provenance (where did this come from?)
+- Confidence indication (how sure is the AI?)
+- One-click access to source evidence
+- Ability to correct/dismiss
+- Visual distinction from raw email content
+
+**Command Bar (⌘K) is Sacred**
+- This is the "Ask My Email" interface - treat it like a superpower
+- Results should feel conversational, not like search results
+- Citations must be clickable and obvious
+- Support follow-up questions in context
+
+### Interaction Patterns
+
+**Speed is Trust**
+- Intelligence should load progressively, not block the UI
+- Skeleton states for intelligence panels
+- Optimistic updates for all user actions
+- Target: <100ms for any user-initiated action
+
+**Keyboard-First Design**
+- Every action must have a keyboard shortcut
+- vim-style navigation for power users (j/k/h/l)
+- Quick actions without leaving keyboard
+- Command palette for everything
+
+**AI Suggestions Should:**
+- Be dismissible with one keystroke
+- Learn from dismissals
+- Never block the user's flow
+- Show reasoning on hover/expand
+
+### Color & Visual Language
+
+**Intelligence Indicators:**
+- High confidence: Solid, prominent
+- Medium confidence: Slightly muted, dashed borders
+- Low confidence: Faded, with "?" indicator
+- User-corrected: Gold accent (user improved the AI)
+
+**Priority/Urgency:**
+- Urgent: Red accent, but NEVER obnoxious
+- High: Orange/amber
+- Medium: Default
+- Low: Muted/gray
+
+**Status Indicators:**
+- Commitments: Blue family
+- Decisions: Purple family
+- Open loops: Amber/warning
+- Risk alerts: Red family
+
+### Anti-Patterns (NEVER DO)
+
+- ❌ Don't make it look like Gmail with AI sprinkled on top
+- ❌ Don't hide intelligence behind tabs or dropdowns
+- ❌ Don't use generic loading spinners - show what's being computed
+- ❌ Don't interrupt flow with modals for AI results
+- ❌ Don't make evidence links look like footnotes nobody reads
+- ❌ Don't sacrifice information density for "clean" design
+- ❌ Don't use generic icons - intelligence types deserve custom visuals
+
+### Aspirational References
+
+- **Linear**: Speed, keyboard navigation, information density
+- **Superhuman**: Email + intelligence integration, keyboard-first
+- **Notion**: Progressive disclosure, block-based thinking
+- **Raycast**: Command bar excellence, instant results
+- **Arc**: Rethinking conventions, bold UI choices
+
+### Implementation Notes
+
+- Use `framer-motion` for meaningful animations (intelligence appearing, not gratuitous)
+- Use `cmdk` for command palette foundation
+- Use `react-hot-toast` or `sonner` for non-blocking notifications
+- Use `@tanstack/virtual` for large lists (thousands of threads)
+- Custom canvas/WebGL for timeline visualizations if needed
+
+**Remember: We're building something people will use 8+ hours a day. Every pixel matters. Every interaction shapes their relationship with their email. Make it feel like magic.**

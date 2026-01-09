@@ -16,6 +16,7 @@ import {
   strictRateLimit,
 } from "./middleware/rate-limit";
 import { requestLogger } from "./middleware/request-logger";
+import { oauthRoutes } from "./routes/oauth";
 import { publicApi } from "./routes/public-api";
 import { polarWebhook } from "./routes/webhooks/polar";
 
@@ -100,6 +101,9 @@ app.post("/ai", async (c) => {
 
 // Mount public API routes (v1)
 app.route("/api/v1", publicApi);
+
+// OAuth callback routes (for email provider integration)
+app.route("/api/oauth", oauthRoutes);
 
 // Polar webhooks (for credit purchases and subscriptions)
 app.route("/api/webhooks/polar", polarWebhook);

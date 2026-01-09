@@ -1,0 +1,329 @@
+{
+  "prdId": "PRD-06",
+  "title": "Search & Knowledge Engine",
+  "description": "Agent 5: Semantic search with pgvector and personal knowledge extraction",
+  "totalTasks": 12,
+  "phases": [
+    {
+      "id": "6.0",
+      "name": "Embedding Infrastructure",
+      "description": "Generate and store embeddings"
+    },
+    {
+      "id": "6.1",
+      "name": "Search Implementation",
+      "description": "Build semantic search capabilities"
+    },
+    {
+      "id": "6.2",
+      "name": "Knowledge Features",
+      "description": "Extract patterns and insights"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Implement Embedding Generator",
+      "description": "Create service to generate embeddings using OpenAI API",
+      "phase": "6.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/embeddings/generator.ts"],
+      "subtasks": [
+        "Create generateEmbedding(text) function",
+        "Configure OpenAI text-embedding-3-small model",
+        "Handle text truncation for long content",
+        "Implement error handling and retries",
+        "Add rate limiting for API calls",
+        "Cache embeddings to avoid regeneration"
+      ],
+      "acceptanceCriteria": [
+        "Embeddings generated for any text",
+        "1536-dimension vectors returned",
+        "Rate limits respected"
+      ],
+      "testStrategy": "Test with various text lengths, mock OpenAI API",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 2,
+      "title": "Create Embedding Trigger Task",
+      "description": "Background task to generate embeddings for new content",
+      "phase": "6.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["apps/server/src/trigger/embedding-generation.ts"],
+      "subtasks": [
+        "Create generateEmbeddingsTask with Trigger.dev",
+        "Subscribe to new message events from sync",
+        "Process messages in batches for efficiency",
+        "Generate embeddings for message body",
+        "Generate embeddings for thread summaries",
+        "Store in messageEmbedding/threadEmbedding tables"
+      ],
+      "acceptanceCriteria": [
+        "New messages automatically embedded",
+        "Batch processing efficient",
+        "Embeddings stored in pgvector"
+      ],
+      "testStrategy": "Test batch processing, verify storage",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 3,
+      "title": "Implement Batch Embedding Processing",
+      "description": "Efficiently embed multiple texts in batches",
+      "phase": "6.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1],
+      "files": ["packages/ai/src/embeddings/generator.ts"],
+      "subtasks": [
+        "Create batchGenerateEmbeddings(texts[]) function",
+        "Batch up to 100 texts per API call",
+        "Handle partial failures in batch",
+        "Implement parallel batching for large sets",
+        "Track progress for UI feedback"
+      ],
+      "acceptanceCriteria": [
+        "Batch processing faster than sequential",
+        "Partial failures don't lose successful embeddings",
+        "Progress trackable"
+      ],
+      "testStrategy": "Test with 1000 texts, measure performance",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 4,
+      "title": "Create HNSW Indexes",
+      "description": "Configure pgvector indexes for efficient similarity search",
+      "phase": "6.0",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": [
+        "packages/db/src/schema/vectors.ts",
+        "packages/db/migrations/xxx_create_hnsw_indexes.ts"
+      ],
+      "subtasks": [
+        "Create HNSW index on messageEmbedding.embedding",
+        "Create HNSW index on threadEmbedding.embedding",
+        "Create HNSW index on claimEmbedding.embedding",
+        "Configure index parameters (m=16, ef_construction=64)",
+        "Create migration for index creation"
+      ],
+      "acceptanceCriteria": [
+        "Indexes created successfully",
+        "Similarity queries use indexes (verify with EXPLAIN)",
+        "Query performance < 100ms for 1M vectors"
+      ],
+      "testStrategy": "Load test with large dataset, verify index usage",
+      "estimatedLOC": 50
+    },
+    {
+      "id": 5,
+      "title": "Implement Query Understanding",
+      "description": "Parse natural language queries into structured search",
+      "phase": "6.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "files": ["packages/ai/src/agents/search.ts"],
+      "subtasks": [
+        "Create parseQuery(query) function",
+        "Classify query type (search, question, command)",
+        "Extract entities (people, dates, topics)",
+        "Identify implicit filters (sender:john, after:2024)",
+        "Return structured query representation"
+      ],
+      "acceptanceCriteria": [
+        "Natural language queries parsed correctly",
+        "Entities extracted accurately",
+        "Filters applied to search"
+      ],
+      "testStrategy": "Test with diverse query patterns",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 6,
+      "title": "Implement Similarity Search",
+      "description": "Search for similar content using vector similarity",
+      "phase": "6.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [1, 4],
+      "files": ["packages/ai/src/embeddings/index.ts"],
+      "subtasks": [
+        "Create searchSimilar(embedding, table, limit) function",
+        "Use pgvector <=> cosine distance operator",
+        "Apply filters (date range, sender, etc.)",
+        "Return ranked results with similarity scores",
+        "Support searching across multiple tables"
+      ],
+      "acceptanceCriteria": [
+        "Similar content found accurately",
+        "Filters applied correctly",
+        "Results ranked by similarity"
+      ],
+      "testStrategy": "Test search quality with known similar content",
+      "estimatedLOC": 100
+    },
+    {
+      "id": 7,
+      "title": "Implement Hybrid Search",
+      "description": "Combine vector and keyword search for best results",
+      "phase": "6.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [6],
+      "files": ["packages/ai/src/embeddings/index.ts"],
+      "subtasks": [
+        "Create hybridSearch(query, options) function",
+        "Run vector search for semantic matches",
+        "Run full-text search for keyword matches",
+        "Normalize scores from both methods",
+        "Merge results with configurable weights",
+        "Deduplicate merged results"
+      ],
+      "acceptanceCriteria": [
+        "Better results than either method alone",
+        "Weights configurable per query type",
+        "No duplicate results"
+      ],
+      "testStrategy": "Compare hybrid vs pure vector vs pure keyword",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 8,
+      "title": "Implement Answer Generation with Citations",
+      "description": "Generate answers from evidence with source citations",
+      "phase": "6.1",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [5, 7],
+      "files": ["packages/ai/src/agents/search.ts"],
+      "subtasks": [
+        "Create answerQuestion(query, evidence) function",
+        "Construct prompt with retrieved evidence",
+        "Generate answer using LLM",
+        "Insert citation markers linking to sources",
+        "Handle 'I couldn't find' for no results",
+        "Include confidence in answer"
+      ],
+      "acceptanceCriteria": [
+        "Answers grounded in evidence",
+        "Citations link to correct sources",
+        "No answer when no evidence"
+      ],
+      "testStrategy": "Test with answerable and unanswerable questions",
+      "estimatedLOC": 150
+    },
+    {
+      "id": 9,
+      "title": "Implement Pattern Detection",
+      "description": "Identify recurring patterns in email history",
+      "phase": "6.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6],
+      "files": ["packages/ai/src/agents/knowledge.ts"],
+      "subtasks": [
+        "Create detectPatterns(threads, options) function",
+        "Cluster similar threads by embedding",
+        "Identify commonalities within clusters",
+        "Generate pattern descriptions",
+        "Provide example threads for each pattern"
+      ],
+      "acceptanceCriteria": [
+        "Meaningful patterns detected",
+        "Patterns have clear descriptions",
+        "Examples validate patterns"
+      ],
+      "testStrategy": "Test with dataset containing known patterns",
+      "estimatedLOC": 120
+    },
+    {
+      "id": 10,
+      "title": "Implement Cross-Thread Connections",
+      "description": "Find related discussions across threads",
+      "phase": "6.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [6],
+      "files": ["packages/ai/src/agents/knowledge.ts"],
+      "subtasks": [
+        "Create findRelated(threadId, limit) function",
+        "Get thread embedding",
+        "Search for similar threads",
+        "Filter out same-conversation threads",
+        "Rank by relevance and recency",
+        "Return with relevance explanation"
+      ],
+      "acceptanceCriteria": [
+        "Related threads found accurately",
+        "Relevance explained to user",
+        "Recent threads prioritized when similar"
+      ],
+      "testStrategy": "Test with threads on known related topics",
+      "estimatedLOC": 80
+    },
+    {
+      "id": 11,
+      "title": "Implement Topic Summarization",
+      "description": "Summarize everything known about a topic",
+      "phase": "6.2",
+      "status": "pending",
+      "priority": "medium",
+      "dependencies": [7, 8],
+      "files": ["packages/ai/src/agents/knowledge.ts"],
+      "subtasks": [
+        "Create summarizeTopic(topic) function",
+        "Search for all content related to topic",
+        "Organize by timeline",
+        "Identify key decisions and commitments",
+        "Generate narrative summary with citations",
+        "Include stakeholders involved"
+      ],
+      "acceptanceCriteria": [
+        "Comprehensive topic overview",
+        "Timeline accurate",
+        "All relevant sources cited"
+      ],
+      "testStrategy": "Test with well-documented topic",
+      "estimatedLOC": 140
+    },
+    {
+      "id": 12,
+      "title": "Implement Insight Generation",
+      "description": "Surface proactive insights from email patterns",
+      "phase": "6.2",
+      "status": "pending",
+      "priority": "low",
+      "dependencies": [9],
+      "files": ["packages/ai/src/agents/knowledge.ts"],
+      "subtasks": [
+        "Create generateInsights(recentThreads) function",
+        "Compare recent activity to historical patterns",
+        "Identify unusual patterns or anomalies",
+        "Generate insight descriptions",
+        "Prioritize actionable insights"
+      ],
+      "acceptanceCriteria": [
+        "Insights are novel and non-obvious",
+        "Actionable for user",
+        "Not noisy (limited quantity)"
+      ],
+      "testStrategy": "Test with known anomalies in data",
+      "estimatedLOC": 100
+    }
+  ],
+  "criticalPath": [1, 2, 4, 6, 7, 8],
+  "metadata": {
+    "createdAt": "2025-01-09",
+    "lastUpdated": "2025-01-09",
+    "version": "1.0.0",
+    "totalEstimatedLOC": 1360
+  }
+}

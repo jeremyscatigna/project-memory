@@ -4,6 +4,7 @@ import {
   CreditCard,
   FileText,
   Home,
+  Mail,
   Settings,
   Shield,
   Users,
@@ -27,6 +28,11 @@ const mainNavItems: NavItem[] = [
     title: "Dashboard",
     url: "/dashboard",
     icon: Home,
+  },
+  {
+    title: "Email Accounts",
+    url: "/dashboard/email-accounts",
+    icon: Mail,
   },
   {
     title: "AI Chat",

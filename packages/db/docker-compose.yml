@@ -1,23 +1,24 @@
-name: saas-template
+name: memorystack
 
 services:
   postgres:
-    image: postgres
-    container_name: saas-template-postgres
+    image: pgvector/pgvector:pg16
+    container_name: memorystack-postgres
     environment:
-      POSTGRES_DB: saas-template
+      POSTGRES_DB: memorystack
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - saas-template_postgres_data:/var/lib/postgresql
+      - memorystack_postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d memorystack"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
 volumes:
-  saas-template_postgres_data:
+  memorystack_postgres_data:
