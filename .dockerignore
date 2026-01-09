@@ -1,0 +1,71 @@
+# =============================================================================
+# Docker ignore file
+# =============================================================================
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs (we build inside Docker)
+dist
+**/dist
+.turbo
+**/.turbo
+.next
+**/.next
+
+# Git
+.git
+.gitignore
+
+# Environment files (pass via docker-compose)
+.env
+.env.*
+!.env.example
+!.env.docker
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Test files
+coverage
+**/*.test.ts
+**/*.spec.ts
+__tests__
+
+# Documentation (not needed in container)
+*.md
+!README.md
+docs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Docker files (prevent recursive copies)
+Dockerfile*
+docker-compose*.yml
+
+# Misc
+.husky
+.biome
+biome.json
+turbo.json
+tsconfig*.json
+*.config.ts
+*.config.js
+!vite.config.ts
+!trigger.config.ts

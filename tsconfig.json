@@ -1,0 +1,6 @@
+{
+  "extends": "@saas-template/config/tsconfig.base.json",
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
+}

@@ -1,0 +1,25 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: saas-template-server-pdb
+  namespace: saas-template
+  labels:
+    app.kubernetes.io/name: saas-template-server
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: saas-template-server
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: saas-template-web-pdb
+  namespace: saas-template
+  labels:
+    app.kubernetes.io/name: saas-template-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: saas-template-web

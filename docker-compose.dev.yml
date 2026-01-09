@@ -1,0 +1,97 @@
+# =============================================================================
+# LEADMINER - Development Docker Compose
+# =============================================================================
+# This file provides only infrastructure services (DB, Redis) for local dev.
+# Run your app locally with `bun run dev` while using containerized services.
+#
+# Usage:
+#   docker-compose -f docker-compose.dev.yml up -d     # Start services
+#   docker-compose -f docker-compose.dev.yml down      # Stop services
+#   docker-compose -f docker-compose.dev.yml down -v   # Stop and remove volumes
+# =============================================================================
+
+name: saas-template-dev
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: saas-template-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: saas-template
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d saas-template"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis (Caching, Rate Limiting)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: saas-template-dev-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Mailpit (Local Email Testing)
+  # ---------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: saas-template-dev-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
+  # ---------------------------------------------------------------------------
+  # Langfuse (AI Observability - Optional)
+  # ---------------------------------------------------------------------------
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: saas-template-dev-langfuse
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/langfuse
+      NEXTAUTH_SECRET: langfuse-dev-secret
+      NEXTAUTH_URL: http://localhost:3003
+      SALT: langfuse-salt-value
+      TELEMETRY_ENABLED: "false"
+    ports:
+      - "3003:3000"
+    profiles:
+      - with-langfuse
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
