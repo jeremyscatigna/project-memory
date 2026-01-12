@@ -6,6 +6,7 @@ import { commitmentsRouter } from "./commitments";
 import { contactsRouter } from "./contacts";
 import { creditsRouter } from "./credits";
 import { decisionsRouter } from "./decisions";
+import { draftsRouter } from "./drafts";
 import { emailAccountsRouter } from "./email-accounts";
 import { emailSyncRouter } from "./email-sync";
 import { featureFlagsRouter } from "./feature-flags";
@@ -45,6 +46,8 @@ export const appRouter = router({
   search: searchRouter,
   // Triage & Routing API (MEMORYSTACK PRD-07)
   triage: triageRouter,
+  // Drafts API (MEMORYSTACK PRD-08)
+  drafts: draftsRouter,
   // Credits management
   credits: creditsRouter,
   // User operations (profile, data export)

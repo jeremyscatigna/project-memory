@@ -27,6 +27,14 @@
     "./scoring": {
       "import": "./src/scoring/index.ts",
       "types": "./src/scoring/index.ts"
+    },
+    "./generation": {
+      "import": "./src/generation/index.ts",
+      "types": "./src/generation/index.ts"
+    },
+    "./prompts/drafting": {
+      "import": "./src/prompts/drafting/index.ts",
+      "types": "./src/prompts/drafting/index.ts"
     }
   },
   "dependencies": {

@@ -444,3 +444,45 @@ export type {
   TriageSuggestion,
 } from "./triage/index.js";
 export { createTriageAgent, TriageAgent } from "./triage/index.js";
+
+// =============================================================================
+// DRAFTING AGENT (Agent 7)
+// =============================================================================
+
+export type {
+  // Schema types
+  Citation,
+  ConsistencyCheck,
+  DraftContext,
+  // Agent types
+  DraftingAgentConfig,
+  DraftOptions,
+  DraftReply,
+  DraftRequest,
+  DraftVariationResult,
+  FollowUpContext,
+  FollowUpDraft as DraftingFollowUpDraft,
+  GeneratedDraft,
+  Improvement,
+  ImprovementType,
+  LengthAdjustment,
+  Refinement,
+  ReminderSchedule,
+  ToneAnalysis,
+  ToneProfile,
+  VariationType,
+} from "./drafting/index.js";
+export {
+  ConsistencyCheckSchema,
+  createDraftingAgent,
+  DraftingAgent,
+  // Schemas
+  DraftReplySchema,
+  DraftVariationSchema,
+  FollowUpDraftSchema,
+  ImprovementSchema,
+  LengthAdjustmentSchema,
+  RefinementSchema,
+  ReminderScheduleSchema,
+  ToneAnalysisSchema,
+} from "./drafting/index.js";
