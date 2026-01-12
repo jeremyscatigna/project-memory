@@ -1,10 +1,14 @@
 import {
   Bell,
+  BookOpen,
   Bot,
+  CheckCircle2,
   CreditCard,
   FileText,
   Home,
+  Inbox,
   Mail,
+  Search,
   Settings,
   Shield,
   Users,
@@ -30,11 +34,6 @@ const mainNavItems: NavItem[] = [
     icon: Home,
   },
   {
-    title: "Email Accounts",
-    url: "/dashboard/email-accounts",
-    icon: Mail,
-  },
-  {
     title: "AI Chat",
     url: "/dashboard/ai",
     icon: Bot,
@@ -43,6 +42,40 @@ const mainNavItems: NavItem[] = [
     title: "Notifications",
     url: "/dashboard/notifications",
     icon: Bell,
+  },
+];
+
+// Intelligence navigation items (MEMORYSTACK)
+const intelligenceNavItems: NavItem[] = [
+  {
+    title: "Inbox",
+    url: "/dashboard/email",
+    icon: Inbox,
+  },
+  {
+    title: "Commitments",
+    url: "/dashboard/commitments",
+    icon: CheckCircle2,
+  },
+  {
+    title: "Decisions",
+    url: "/dashboard/decisions",
+    icon: BookOpen,
+  },
+  {
+    title: "Contacts",
+    url: "/dashboard/contacts",
+    icon: Users,
+  },
+  {
+    title: "Search",
+    url: "/dashboard/search",
+    icon: Search,
+  },
+  {
+    title: "Email Accounts",
+    url: "/dashboard/email-accounts",
+    icon: Mail,
   },
 ];
 
@@ -118,6 +151,7 @@ export function AppSidebar({ showAdmin = false, ...props }: AppSidebarProps) {
         <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
+        <NavMain items={intelligenceNavItems} label="Email Intelligence" />
         <NavMain items={mainNavItems} label="Platform" />
         <NavMain items={teamNavItems} label="Management" />
         {showAdmin && <NavMain items={adminNavItems} label="Administration" />}

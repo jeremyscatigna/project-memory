@@ -94,6 +94,21 @@ const triggerAnalysisSchema = z.object({
   force: z.boolean().default(false),
 });
 
+// Additional schemas for inbox functionality
+const listThreadsInboxSchema = z.object({
+  accountId: z.string().uuid().optional(),
+  filter: z.enum(["all", "unread", "starred", "snoozed", "sent", "drafts", "archived", "trash"]).default("all"),
+  sort: z.enum(["date", "priority", "sender", "subject"]).default("date"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc"),
+  intelligenceFilter: z.enum(["all", "has_commitments", "has_decisions", "needs_response", "has_risk"]).default("all"),
+  limit: z.number().int().min(1).max(100).default(50),
+  offset: z.number().int().min(0).default(0),
+});
+
+const threadIdSchema = z.object({
+  threadId: z.string().uuid(),
+});
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -688,5 +703,311 @@ export const threadsRouter = router({
       );
 
       return { threads, totalOpenLoops };
+    }),
+
+  // ==========================================================================
+  // INBOX UI PROCEDURES
+  // ==========================================================================
+
+  /**
+   * Get thread by ID (for inbox UI).
+   */
+  getById: protectedProcedure
+    .input(threadIdSchema)
+    .query(async ({ ctx, input }) => {
+      const thread = await db.query.emailThread.findFirst({
+        where: eq(emailThread.id, input.threadId),
+        with: {
+          account: {
+            columns: { organizationId: true },
+          },
+        },
+      });
+
+      if (!thread) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Thread not found.",
+        });
+      }
+
+      return {
+        thread: {
+          id: thread.id,
+          subject: thread.subject,
+          brief: thread.briefSummary,
+          isStarred: thread.isStarred,
+          isArchived: thread.isArchived,
+          isRead: thread.isRead,
+          priorityTier: thread.priorityTier,
+        },
+      };
+    }),
+
+  /**
+   * Get messages for a thread (for inbox UI).
+   */
+  getMessages: protectedProcedure
+    .input(threadIdSchema)
+    .query(async ({ ctx, input }) => {
+      const thread = await db.query.emailThread.findFirst({
+        where: eq(emailThread.id, input.threadId),
+        with: {
+          messages: {
+            orderBy: (m, { asc }) => [asc(m.messageIndex)],
+          },
+        },
+      });
+
+      if (!thread) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Thread not found.",
+        });
+      }
+
+      return {
+        messages: thread.messages.map((m) => ({
+          id: m.id,
+          threadId: input.threadId,
+          subject: m.subject,
+          from: {
+            email: m.fromEmail,
+            name: m.fromName ?? m.fromEmail,
+          },
+          to: (m.toRecipients as Array<{ email: string; name?: string }>) ?? [],
+          cc: m.ccRecipients as Array<{ email: string; name?: string }> | undefined,
+          date: m.sentAt ?? m.receivedAt ?? new Date(),
+          body: m.bodyText ?? "",
+          bodyHtml: m.bodyHtml,
+          snippet: m.bodyText?.slice(0, 200) ?? "",
+          isUnread: !thread.isRead,
+          attachments: [],
+        })),
+      };
+    }),
+
+  /**
+   * Get intelligence for a thread (for inbox UI).
+   */
+  getIntelligence: protectedProcedure
+    .input(threadIdSchema)
+    .query(async ({ ctx, input }) => {
+      // Get claims for this thread
+      const claims = await db.query.claim.findMany({
+        where: and(
+          eq(claim.threadId, input.threadId),
+          eq(claim.isUserDismissed, false)
+        ),
+        orderBy: [desc(claim.confidence)],
+      });
+
+      // Transform claims to commitments, decisions, and questions
+      const commitments = claims
+        .filter((c) => c.type === "promise")
+        .map((c) => ({
+          id: c.id,
+          title: c.text,
+          description: c.evidence ?? undefined,
+          debtor: {
+            email: c.attributedTo ?? "",
+            name: c.attributedTo ?? "Unknown",
+          },
+          dueDate: c.metadata ? (c.metadata as { dueDate?: string }).dueDate : undefined,
+          status: "pending" as const,
+          priority: "medium" as const,
+          confidence: c.confidence,
+          evidence: [],
+          extractedFrom: c.messageId ?? "",
+          reasoning: c.evidence ?? undefined,
+        }));
+
+      const decisions = claims
+        .filter((c) => c.type === "decision")
+        .map((c) => ({
+          id: c.id,
+          title: c.text,
+          statement: c.text,
+          rationale: c.evidence ?? undefined,
+          maker: {
+            email: c.attributedTo ?? "",
+            name: c.attributedTo ?? "Unknown",
+          },
+          date: c.extractedAt ?? new Date(),
+          confidence: c.confidence,
+          evidence: [],
+          extractedFrom: c.messageId ?? "",
+        }));
+
+      const openQuestions = claims
+        .filter((c) => c.type === "question")
+        .map((c) => ({
+          id: c.id,
+          question: c.text,
+          askedBy: {
+            email: c.attributedTo ?? "",
+            name: c.attributedTo ?? "Unknown",
+          },
+          askedAt: c.extractedAt ?? new Date(),
+          isAnswered: (c.metadata as { isAnswered?: boolean })?.isAnswered ?? false,
+          confidence: c.confidence,
+        }));
+
+      return {
+        commitments,
+        decisions,
+        openQuestions,
+        riskWarnings: [],
+      };
+    }),
+
+  /**
+   * Get related context for a thread (for memory panel).
+   */
+  getRelatedContext: protectedProcedure
+    .input(threadIdSchema)
+    .query(async ({ ctx, input }) => {
+      // For now, return empty context - can be enhanced later
+      return {
+        relatedThreads: [],
+        relatedDecisions: [],
+        relatedCommitments: [],
+        contactContexts: [],
+        timeline: [],
+      };
+    }),
+
+  /**
+   * Get unread count.
+   */
+  getUnreadCount: protectedProcedure
+    .input(z.object({ accountId: z.string().uuid().optional() }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      // Get user's organizations
+      const memberships = await db.query.member.findMany({
+        where: eq(member.userId, userId),
+        columns: { organizationId: true },
+      });
+
+      if (memberships.length === 0) {
+        return { count: 0 };
+      }
+
+      const orgIds = memberships.map((m) => m.organizationId);
+
+      // Get accounts
+      const accounts = await db.query.emailAccount.findMany({
+        where: and(
+          inArray(emailAccount.organizationId, orgIds),
+          input.accountId ? eq(emailAccount.id, input.accountId) : undefined
+        ),
+        columns: { id: true },
+      });
+
+      if (accounts.length === 0) {
+        return { count: 0 };
+      }
+
+      const [result] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(emailThread)
+        .where(
+          and(
+            inArray(emailThread.accountId, accounts.map((a) => a.id)),
+            eq(emailThread.isRead, false),
+            eq(emailThread.isArchived, false)
+          )
+        );
+
+      return { count: result?.count ?? 0 };
+    }),
+
+  /**
+   * Archive a thread.
+   */
+  archive: protectedProcedure
+    .input(threadIdSchema)
+    .mutation(async ({ ctx, input }) => {
+      await db
+        .update(emailThread)
+        .set({ isArchived: true, updatedAt: new Date() })
+        .where(eq(emailThread.id, input.threadId));
+
+      return { success: true };
+    }),
+
+  /**
+   * Star/unstar a thread.
+   */
+  star: protectedProcedure
+    .input(z.object({
+      threadId: z.string().uuid(),
+      starred: z.boolean(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db
+        .update(emailThread)
+        .set({ isStarred: input.starred, updatedAt: new Date() })
+        .where(eq(emailThread.id, input.threadId));
+
+      return { success: true };
+    }),
+
+  /**
+   * Mark thread as read/unread.
+   */
+  markRead: protectedProcedure
+    .input(z.object({
+      threadId: z.string().uuid(),
+      read: z.boolean(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db
+        .update(emailThread)
+        .set({ isRead: input.read, updatedAt: new Date() })
+        .where(eq(emailThread.id, input.threadId));
+
+      return { success: true };
+    }),
+
+  /**
+   * Delete a thread.
+   */
+  delete: protectedProcedure
+    .input(threadIdSchema)
+    .mutation(async ({ ctx, input }) => {
+      // Soft delete by marking as trashed
+      await db
+        .update(emailThread)
+        .set({
+          isArchived: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(emailThread.id, input.threadId));
+
+      return { success: true };
+    }),
+
+  /**
+   * Snooze a thread.
+   */
+  snooze: protectedProcedure
+    .input(z.object({
+      threadId: z.string().uuid(),
+      until: z.date(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db
+        .update(emailThread)
+        .set({
+          isArchived: true, // Hide from inbox
+          updatedAt: new Date(),
+          // Note: Would need to add snoozeUntil column to schema
+        })
+        .where(eq(emailThread.id, input.threadId));
+
+      return { success: true };
     }),
 });

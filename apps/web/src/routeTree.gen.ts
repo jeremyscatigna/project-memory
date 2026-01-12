@@ -33,9 +33,11 @@ import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminOrganizationsRouteImport } from './routes/admin/organizations'
 import { Route as AdminAuditRouteImport } from './routes/admin/audit'
 import { Route as DashboardTeamIndexRouteImport } from './routes/dashboard/team/index'
+import { Route as DashboardEmailIndexRouteImport } from './routes/dashboard/email/index'
 import { Route as DashboardTeamSettingsRouteImport } from './routes/dashboard/team/settings'
 import { Route as DashboardTeamMembersRouteImport } from './routes/dashboard/team/members'
 import { Route as DashboardTeamInvitationsRouteImport } from './routes/dashboard/team/invitations'
+import { Route as DashboardEmailThreadThreadIdRouteImport } from './routes/dashboard/email/thread.$threadId'
 
 const Verify2faRoute = Verify2faRouteImport.update({
   id: '/verify-2fa',
@@ -157,6 +159,11 @@ const DashboardTeamIndexRoute = DashboardTeamIndexRouteImport.update({
   path: '/team/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardEmailIndexRoute = DashboardEmailIndexRouteImport.update({
+  id: '/email/',
+  path: '/email/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardTeamSettingsRoute = DashboardTeamSettingsRouteImport.update({
   id: '/team/settings',
   path: '/team/settings',
@@ -171,6 +178,12 @@ const DashboardTeamInvitationsRoute =
   DashboardTeamInvitationsRouteImport.update({
     id: '/team/invitations',
     path: '/team/invitations',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardEmailThreadThreadIdRoute =
+  DashboardEmailThreadThreadIdRouteImport.update({
+    id: '/email/thread/$threadId',
+    path: '/email/thread/$threadId',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
 
@@ -201,7 +214,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/team/invitations': typeof DashboardTeamInvitationsRoute
   '/dashboard/team/members': typeof DashboardTeamMembersRoute
   '/dashboard/team/settings': typeof DashboardTeamSettingsRoute
+  '/dashboard/email': typeof DashboardEmailIndexRoute
   '/dashboard/team': typeof DashboardTeamIndexRoute
+  '/dashboard/email/thread/$threadId': typeof DashboardEmailThreadThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -228,7 +243,9 @@ export interface FileRoutesByTo {
   '/dashboard/team/invitations': typeof DashboardTeamInvitationsRoute
   '/dashboard/team/members': typeof DashboardTeamMembersRoute
   '/dashboard/team/settings': typeof DashboardTeamSettingsRoute
+  '/dashboard/email': typeof DashboardEmailIndexRoute
   '/dashboard/team': typeof DashboardTeamIndexRoute
+  '/dashboard/email/thread/$threadId': typeof DashboardEmailThreadThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -258,7 +275,9 @@ export interface FileRoutesById {
   '/dashboard/team/invitations': typeof DashboardTeamInvitationsRoute
   '/dashboard/team/members': typeof DashboardTeamMembersRoute
   '/dashboard/team/settings': typeof DashboardTeamSettingsRoute
+  '/dashboard/email/': typeof DashboardEmailIndexRoute
   '/dashboard/team/': typeof DashboardTeamIndexRoute
+  '/dashboard/email/thread/$threadId': typeof DashboardEmailThreadThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -289,7 +308,9 @@ export interface FileRouteTypes {
     | '/dashboard/team/invitations'
     | '/dashboard/team/members'
     | '/dashboard/team/settings'
+    | '/dashboard/email'
     | '/dashboard/team'
+    | '/dashboard/email/thread/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -316,7 +337,9 @@ export interface FileRouteTypes {
     | '/dashboard/team/invitations'
     | '/dashboard/team/members'
     | '/dashboard/team/settings'
+    | '/dashboard/email'
     | '/dashboard/team'
+    | '/dashboard/email/thread/$threadId'
   id:
     | '__root__'
     | '/'
@@ -345,7 +368,9 @@ export interface FileRouteTypes {
     | '/dashboard/team/invitations'
     | '/dashboard/team/members'
     | '/dashboard/team/settings'
+    | '/dashboard/email/'
     | '/dashboard/team/'
+    | '/dashboard/email/thread/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -534,6 +559,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTeamIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/email/': {
+      id: '/dashboard/email/'
+      path: '/email'
+      fullPath: '/dashboard/email'
+      preLoaderRoute: typeof DashboardEmailIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/team/settings': {
       id: '/dashboard/team/settings'
       path: '/team/settings'
@@ -553,6 +585,13 @@ declare module '@tanstack/react-router' {
       path: '/team/invitations'
       fullPath: '/dashboard/team/invitations'
       preLoaderRoute: typeof DashboardTeamInvitationsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/email/thread/$threadId': {
+      id: '/dashboard/email/thread/$threadId'
+      path: '/email/thread/$threadId'
+      fullPath: '/dashboard/email/thread/$threadId'
+      preLoaderRoute: typeof DashboardEmailThreadThreadIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
   }
@@ -586,7 +625,9 @@ interface DashboardRouteRouteChildren {
   DashboardTeamInvitationsRoute: typeof DashboardTeamInvitationsRoute
   DashboardTeamMembersRoute: typeof DashboardTeamMembersRoute
   DashboardTeamSettingsRoute: typeof DashboardTeamSettingsRoute
+  DashboardEmailIndexRoute: typeof DashboardEmailIndexRoute
   DashboardTeamIndexRoute: typeof DashboardTeamIndexRoute
+  DashboardEmailThreadThreadIdRoute: typeof DashboardEmailThreadThreadIdRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -599,7 +640,9 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardTeamInvitationsRoute: DashboardTeamInvitationsRoute,
   DashboardTeamMembersRoute: DashboardTeamMembersRoute,
   DashboardTeamSettingsRoute: DashboardTeamSettingsRoute,
+  DashboardEmailIndexRoute: DashboardEmailIndexRoute,
   DashboardTeamIndexRoute: DashboardTeamIndexRoute,
+  DashboardEmailThreadThreadIdRoute: DashboardEmailThreadThreadIdRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

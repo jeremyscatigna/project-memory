@@ -241,8 +241,12 @@ export class KnowledgeAgent {
 
       const prompt = `Analyze these related email excerpts and identify the common pattern:
 
-${examples.map((e, i) => `[${i + 1}] ${e.date} - ${e.subject}
-${e.content}...`).join("\n\n")}
+${examples
+  .map(
+    (e, i) => `[${i + 1}] ${e.date} - ${e.subject}
+${e.content}...`
+  )
+  .join("\n\n")}
 
 Identify:
 1. The pattern name (short, descriptive)

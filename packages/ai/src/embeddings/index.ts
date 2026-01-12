@@ -6,28 +6,28 @@
 //
 
 export {
+  // Utilities
+  aggregateEmbeddings,
+  type BatchEmbeddingResult,
+  batchGenerateEmbeddings,
+  // Helpers
+  calculateInputHash,
+  cleanTextForEmbedding,
+  cosineSimilarity,
   // Constants
   DEFAULT_EMBEDDING_MODEL,
   EMBEDDING_DIMENSIONS,
-  MAX_TOKENS_PER_REQUEST,
-  MAX_BATCH_SIZE,
-  MAX_REQUESTS_PER_MINUTE,
+  type EmbeddingOptions,
   // Types
   type EmbeddingResult,
-  type BatchEmbeddingResult,
-  type EmbeddingOptions,
-  // Helpers
-  calculateInputHash,
-  truncateForEmbedding,
-  cleanTextForEmbedding,
-  prepareTextForEmbedding,
+  generateClaimEmbedding,
   // Generation functions
   generateEmbedding,
-  batchGenerateEmbeddings,
   generateMessageEmbedding,
-  generateClaimEmbedding,
   generateQueryEmbedding,
-  // Utilities
-  aggregateEmbeddings,
-  cosineSimilarity,
+  MAX_BATCH_SIZE,
+  MAX_REQUESTS_PER_MINUTE,
+  MAX_TOKENS_PER_REQUEST,
+  prepareTextForEmbedding,
+  truncateForEmbedding,
 } from "./generator.js";
