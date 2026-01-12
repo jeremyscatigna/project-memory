@@ -12,6 +12,7 @@ import { featureFlagsRouter } from "./feature-flags";
 import { notificationsRouter } from "./notifications";
 import { searchRouter } from "./search";
 import { threadsRouter } from "./threads";
+import { triageRouter } from "./triage";
 import { uploadsRouter } from "./uploads";
 import { userRouter } from "./user";
 import { webhooksRouter } from "./webhooks";
@@ -42,6 +43,8 @@ export const appRouter = router({
   contacts: contactsRouter,
   // Search & Knowledge API (MEMORYSTACK PRD-06)
   search: searchRouter,
+  // Triage & Routing API (MEMORYSTACK PRD-07)
+  triage: triageRouter,
   // Credits management
   credits: creditsRouter,
   // User operations (profile, data export)

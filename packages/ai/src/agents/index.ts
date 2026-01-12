@@ -430,3 +430,17 @@ export {
   PatternResponseSchema,
   TopicSummaryResponseSchema,
 } from "./knowledge/index.js";
+
+// =============================================================================
+// TRIAGE AGENT (Agent 6)
+// =============================================================================
+
+export type {
+  InboxSummaryResult,
+  ThreadGroup,
+  ThreadInput as TriageThreadInput,
+  TriageAgentConfig,
+  TriageRule,
+  TriageSuggestion,
+} from "./triage/index.js";
+export { createTriageAgent, TriageAgent } from "./triage/index.js";

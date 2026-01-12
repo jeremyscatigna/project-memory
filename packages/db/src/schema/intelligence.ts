@@ -13,7 +13,12 @@ import {
   timestamp,
   unique,
 } from "drizzle-orm/pg-core";
-import { emailMessage, emailParticipant, emailThread } from "./email";
+import {
+  emailAccount,
+  emailMessage,
+  emailParticipant,
+  emailThread,
+} from "./email";
 import { organization } from "./organization";
 
 // =============================================================================
@@ -629,6 +634,206 @@ export const threadTopicRelations = relations(threadTopic, ({ one }) => ({
 }));
 
 // =============================================================================
+// TRIAGE ENUMS (Agent 6: Triage & Routing)
+// =============================================================================
+
+export const triageActionEnum = pgEnum("triage_action", [
+  "respond",
+  "archive",
+  "delegate",
+  "schedule",
+  "wait",
+  "escalate",
+  "review",
+]);
+
+export const triagePriorityTierEnum = pgEnum("triage_priority_tier", [
+  "urgent",
+  "high",
+  "medium",
+  "low",
+]);
+
+export const triageRuleTriggerTypeEnum = pgEnum("triage_rule_trigger_type", [
+  "sender",
+  "subject",
+  "content",
+  "label",
+]);
+
+export const triageRuleTriggerConditionEnum = pgEnum(
+  "triage_rule_trigger_condition",
+  ["contains", "equals", "matches"]
+);
+
+export const triageRuleActionEnum = pgEnum("triage_rule_action", [
+  "archive",
+  "label",
+  "forward",
+  "priority",
+]);
+
+// =============================================================================
+// TRIAGE RESULT TABLE (Agent 6: Triage & Routing)
+// =============================================================================
+
+/**
+ * Stores triage analysis results for email threads.
+ * Created by the Triage Agent with action suggestions and priority scores.
+ */
+export const triageResult = pgTable(
+  "triage_result",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => emailThread.id, { onDelete: "cascade" })
+      .unique(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => emailAccount.id, { onDelete: "cascade" }),
+
+    // Suggested action
+    suggestedAction: triageActionEnum("suggested_action").notNull(),
+    confidence: real("confidence").notNull().default(0.5),
+    reasoning: text("reasoning"),
+
+    // Priority scoring
+    priorityTier: triagePriorityTierEnum("priority_tier").notNull(),
+    urgencyScore: real("urgency_score").notNull().default(0),
+    importanceScore: real("importance_score").notNull().default(0),
+
+    // LLM usage flag
+    usedLlm: boolean("used_llm").notNull().default(false),
+
+    // Delegation suggestion (if applicable)
+    delegateTo: text("delegate_to"),
+    delegateReason: text("delegate_reason"),
+
+    // Scheduling suggestion (if applicable)
+    scheduledFor: timestamp("scheduled_for"),
+    scheduleReason: text("schedule_reason"),
+
+    // Rule that triggered (if any)
+    matchedRuleId: text("matched_rule_id"),
+
+    // User feedback
+    userAccepted: boolean("user_accepted"),
+    userFeedback: text("user_feedback"),
+    userActionTaken: text("user_action_taken"),
+
+    // Additional details
+    details: jsonb("details").$type<Record<string, unknown>>(),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("triage_result_thread_idx").on(table.threadId),
+    index("triage_result_account_idx").on(table.accountId),
+    index("triage_result_action_idx").on(table.suggestedAction),
+    index("triage_result_priority_idx").on(table.priorityTier),
+    index("triage_result_created_idx").on(table.createdAt),
+  ]
+);
+
+// =============================================================================
+// TRIAGE RULE TABLE (Agent 6: Triage & Routing)
+// =============================================================================
+
+export interface TriageRuleTrigger {
+  type: "sender" | "subject" | "content" | "label";
+  condition: "contains" | "equals" | "matches";
+  value: string;
+}
+
+/**
+ * Stores user-defined and learned automation rules for email triage.
+ */
+export const triageRule = pgTable(
+  "triage_rule",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => emailAccount.id, { onDelete: "cascade" }),
+
+    // Rule identity
+    name: text("name").notNull(),
+    description: text("description"),
+
+    // Trigger conditions
+    trigger: jsonb("trigger").$type<TriageRuleTrigger>().notNull(),
+
+    // Action to take
+    action: triageRuleActionEnum("action").notNull(),
+    actionValue: text("action_value"), // Label name, forward address, priority level
+
+    // Rule state
+    enabled: boolean("enabled").notNull().default(true),
+
+    // Learning/suggestion origin
+    isUserCreated: boolean("is_user_created").notNull().default(true),
+    suggestedByAi: boolean("suggested_by_ai").notNull().default(false),
+    suggestionConfidence: real("suggestion_confidence"),
+
+    // Usage stats
+    hitCount: integer("hit_count").notNull().default(0),
+    lastHitAt: timestamp("last_hit_at"),
+
+    // Ordering
+    priority: integer("priority").notNull().default(0),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("triage_rule_account_idx").on(table.accountId),
+    index("triage_rule_enabled_idx").on(table.enabled),
+    index("triage_rule_priority_idx").on(table.priority),
+  ]
+);
+
+// =============================================================================
+// TRIAGE RELATIONS
+// =============================================================================
+
+export const triageResultRelations = relations(triageResult, ({ one }) => ({
+  thread: one(emailThread, {
+    fields: [triageResult.threadId],
+    references: [emailThread.id],
+  }),
+  account: one(emailAccount, {
+    fields: [triageResult.accountId],
+    references: [emailAccount.id],
+  }),
+  matchedRule: one(triageRule, {
+    fields: [triageResult.matchedRuleId],
+    references: [triageRule.id],
+  }),
+}));
+
+export const triageRuleRelations = relations(triageRule, ({ one, many }) => ({
+  account: one(emailAccount, {
+    fields: [triageRule.accountId],
+    references: [emailAccount.id],
+  }),
+  triageResults: many(triageResult),
+}));
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 
@@ -644,3 +849,7 @@ export type Topic = typeof topic.$inferSelect;
 export type NewTopic = typeof topic.$inferInsert;
 export type ThreadTopic = typeof threadTopic.$inferSelect;
 export type NewThreadTopic = typeof threadTopic.$inferInsert;
+export type TriageResult = typeof triageResult.$inferSelect;
+export type NewTriageResult = typeof triageResult.$inferInsert;
+export type TriageRule = typeof triageRule.$inferSelect;
+export type NewTriageRule = typeof triageRule.$inferInsert;

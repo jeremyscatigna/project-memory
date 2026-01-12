@@ -20,3 +20,5 @@ export * from "./send-email.js";
 // Thread analysis tasks (PRD-03)
 export * from "./thread-analysis.js";
 export * from "./token-refresh.js";
+// Triage analysis tasks (PRD-07)
+export * from "./triage-analysis.js";

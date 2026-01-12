@@ -23,6 +23,10 @@
     "./embeddings": {
       "import": "./src/embeddings/index.ts",
       "types": "./src/embeddings/index.ts"
+    },
+    "./scoring": {
+      "import": "./src/scoring/index.ts",
+      "types": "./src/scoring/index.ts"
     }
   },
   "dependencies": {
